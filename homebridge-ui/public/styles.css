@@ -94,9 +94,9 @@ body {
   background: transparent !important;
 }
 .nav-tabs .nav-link.active::after {
-  content: '';
+  content: "";
   position: absolute;
-  top: 100%;   /* starts at the bottom edge of the tab button */
+  top: 100%; /* starts at the bottom edge of the tab button */
   left: 0;
   right: 0;
   height: 2px;

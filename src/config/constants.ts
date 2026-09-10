@@ -3,15 +3,15 @@
  */
 
 /** Bonjour/mDNS service type for Elgato devices */
-export const BONJOUR_SERVICE_TYPE = 'elg';
+export const BONJOUR_SERVICE_TYPE = "elg";
 
 /** API endpoint paths */
 export const API_PATHS = {
-  BASE: '/elgato/',
-  ACCESSORY_INFO: 'accessory-info',
-  LIGHTS: 'lights',
-  SETTINGS: 'lights/settings',
-  IDENTIFY: 'identify',
+  BASE: "/elgato/",
+  ACCESSORY_INFO: "accessory-info",
+  LIGHTS: "lights",
+  SETTINGS: "lights/settings",
+  IDENTIFY: "identify",
 } as const;
 
 /** HomeKit color temperature range in mirek (140-500 mirek = 7143K-2000K) */
@@ -24,7 +24,10 @@ export const COLOR_TEMPERATURE = {
  * Clamp a color temperature value to the valid HomeKit range
  */
 export function clampColorTemperature(value: number): number {
-  return Math.max(COLOR_TEMPERATURE.MIN_MIREK, Math.min(COLOR_TEMPERATURE.MAX_MIREK, value));
+  return Math.max(
+    COLOR_TEMPERATURE.MIN_MIREK,
+    Math.min(COLOR_TEMPERATURE.MAX_MIREK, value),
+  );
 }
 
 /** Default polling rate in milliseconds */

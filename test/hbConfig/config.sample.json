@@ -1,0 +1,15 @@
+{
+  "bridge": {
+    "name": "Elgato Development",
+    "username": "0E:12:34:56:78:91",
+    "port": 52988,
+    "pin": "031-45-154"
+  },
+  "accessories": [],
+  "platforms": [
+    {
+      "platform": "ElgatoKeyLights",
+      "name": "Elgato Key Lights"
+    }
+  ]
+}

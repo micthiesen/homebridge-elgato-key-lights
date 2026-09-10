@@ -1,5 +1,11 @@
-import { vi } from 'vitest';
-import type { Logger, API, PlatformAccessory, Service, Characteristic } from 'homebridge';
+import { vi } from "vitest";
+import type {
+  Logger,
+  API,
+  PlatformAccessory,
+  Service,
+  Characteristic,
+} from "homebridge";
 
 /**
  * Creates a mock Homebridge Logger
@@ -56,7 +62,10 @@ export function createMockCharacteristic(): Characteristic {
 /**
  * Creates a mock PlatformAccessory
  */
-export function createMockAccessory(uuid: string, displayName: string): PlatformAccessory {
+export function createMockAccessory(
+  uuid: string,
+  displayName: string,
+): PlatformAccessory {
   const services = new Map<string, Service>();
 
   return {
@@ -87,19 +96,19 @@ export function createMockAPI(): API {
   return {
     hap: {
       Service: {
-        Lightbulb: 'Lightbulb',
-        AccessoryInformation: 'AccessoryInformation',
+        Lightbulb: "Lightbulb",
+        AccessoryInformation: "AccessoryInformation",
       },
       Characteristic: {
-        On: 'On',
-        Brightness: 'Brightness',
-        ColorTemperature: 'ColorTemperature',
-        Manufacturer: 'Manufacturer',
-        Model: 'Model',
-        SerialNumber: 'SerialNumber',
-        FirmwareRevision: 'FirmwareRevision',
-        Name: 'Name',
-        Identify: 'Identify',
+        On: "On",
+        Brightness: "Brightness",
+        ColorTemperature: "ColorTemperature",
+        Manufacturer: "Manufacturer",
+        Model: "Model",
+        SerialNumber: "SerialNumber",
+        FirmwareRevision: "FirmwareRevision",
+        Name: "Name",
+        Identify: "Identify",
       },
       uuid: {
         generate: vi.fn((id: string) => `uuid-${id}`),

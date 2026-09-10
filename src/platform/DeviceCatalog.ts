@@ -1,8 +1,8 @@
-import type { Logger } from 'homebridge';
+import type { Logger } from "homebridge";
 
-import type { KeyLightInstance } from '../devices/KeyLightInstance.js';
-import type { KeyLightsAccessory } from '../accessories/KeyLightsAccessory.js';
-import type { KeyLight, DeviceState } from '../types/index.js';
+import type { KeyLightInstance } from "../devices/KeyLightInstance.js";
+import type { KeyLightsAccessory } from "../accessories/KeyLightsAccessory.js";
+import type { KeyLight, DeviceState } from "../types/index.js";
 
 /**
  * Entry in the device catalog containing all device-related objects
@@ -73,7 +73,7 @@ export class DeviceCatalog {
       device,
       instance: null,
       accessory: null,
-      state: 'discovered',
+      state: "discovered",
       discoveredAt: now,
       lastSeen: now,
     };
@@ -88,7 +88,7 @@ export class DeviceCatalog {
   public markInitializing(mac: string): void {
     const entry = this.devices.get(mac);
     if (entry) {
-      entry.state = 'initializing';
+      entry.state = "initializing";
       this.log.debug(`[Catalog] Initializing: ${entry.device.name}`);
     }
   }
@@ -100,7 +100,7 @@ export class DeviceCatalog {
     const entry = this.devices.get(mac);
     if (entry) {
       entry.instance = instance;
-      entry.state = 'online';
+      entry.state = "online";
       entry.lastSeen = new Date();
       this.log.debug(`[Catalog] Instance registered: ${instance.displayName}`);
     }
@@ -124,14 +124,16 @@ export class DeviceCatalog {
     const entry = this.devices.get(mac);
     if (entry) {
       // Preserve resolved IP if we have one and new hostname is .local
-      if (entry.resolvedIp && device.hostname.endsWith('.local')) {
+      if (entry.resolvedIp && device.hostname.endsWith(".local")) {
         device.hostname = entry.resolvedIp;
-        this.log.debug(`[Catalog] Using cached IP ${entry.resolvedIp} for ${device.name}`);
+        this.log.debug(
+          `[Catalog] Using cached IP ${entry.resolvedIp} for ${device.name}`,
+        );
       }
       entry.device = device;
       entry.lastSeen = new Date();
-      if (entry.state === 'offline') {
-        entry.state = 'online';
+      if (entry.state === "offline") {
+        entry.state = "online";
       }
       this.log.debug(`[Catalog] Connection updated: ${device.name}`);
     }
@@ -161,8 +163,10 @@ export class DeviceCatalog {
   public markError(mac: string, reason?: string): void {
     const entry = this.devices.get(mac);
     if (entry) {
-      entry.state = 'error';
-      this.log.debug(`[Catalog] Error for ${entry.device.name}: ${reason ?? 'unknown'}`);
+      entry.state = "error";
+      this.log.debug(
+        `[Catalog] Error for ${entry.device.name}: ${reason ?? "unknown"}`,
+      );
     }
   }
 
@@ -172,7 +176,7 @@ export class DeviceCatalog {
   public markOffline(mac: string): void {
     const entry = this.devices.get(mac);
     if (entry) {
-      entry.state = 'offline';
+      entry.state = "offline";
       this.log.debug(`[Catalog] Offline: ${entry.device.name}`);
     }
   }
@@ -202,7 +206,7 @@ export class DeviceCatalog {
    * Get all online devices
    */
   public getOnlineDevices(): DeviceCatalogEntry[] {
-    return this.getAll().filter(entry => entry.state === 'online');
+    return this.getAll().filter((entry) => entry.state === "online");
   }
 
   /**

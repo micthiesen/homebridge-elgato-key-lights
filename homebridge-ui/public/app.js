@@ -22,12 +22,12 @@ let currentDeviceIndex = -1;
 let initialized = false;
 
 // Initialize when homebridge is ready
-if (typeof homebridge !== 'undefined') {
-  homebridge.addEventListener('ready', () => {
+if (typeof homebridge !== "undefined") {
+  homebridge.addEventListener("ready", () => {
     onHomebridgeReady();
   });
 } else {
-  document.getElementById('deviceList').innerHTML = `
+  document.getElementById("deviceList").innerHTML = `
     <div class="alert alert-danger m-3">
       <i class="bi bi-exclamation-triangle me-2"></i>
       Homebridge UI not available. Please refresh the page.
@@ -45,11 +45,14 @@ async function onHomebridgeReady() {
   try {
     const settings = await homebridge.getUserSettings();
     const scheme = settings.colorScheme;
-    if (scheme === 'dark' || scheme === 'light') {
+    if (scheme === "dark" || scheme === "light") {
       document.documentElement.dataset.bsTheme = scheme;
-    } else if (scheme === 'auto') {
-      document.documentElement.dataset.bsTheme =
-        window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+    } else if (scheme === "auto") {
+      document.documentElement.dataset.bsTheme = window.matchMedia(
+        "(prefers-color-scheme: dark)",
+      ).matches
+        ? "dark"
+        : "light";
     }
   } catch {
     // getUserSettings not available in older versions — keep the early-detected theme
@@ -64,11 +67,11 @@ async function onHomebridgeReady() {
 
 async function loadConfiguredDevices() {
   try {
-    configuredDevices = await homebridge.request('/config/devices') || [];
+    configuredDevices = (await homebridge.request("/config/devices")) || [];
 
     if (configuredDevices.length > 0) {
       // Display configured devices immediately with "Checking..." status
-      discoveredDevices = configuredDevices.map(d => ({
+      discoveredDevices = configuredDevices.map((d) => ({
         ...d,
         addresses: d.ip ? [d.ip] : [],
         online: null, // null = checking status
@@ -78,26 +81,26 @@ async function loadConfiguredDevices() {
       renderDevices([]);
     }
   } catch (e) {
-    console.error('[KeyLights] Failed to load configured devices:', e);
+    console.error("[KeyLights] Failed to load configured devices:", e);
     renderDevices([]);
   }
 }
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars -- called from HTML onclick
+// oxlint-disable-next-line no-unused-vars -- called from HTML onclick
 function showListView() {
-  MpKit.View.show('listView');
+  MpKit.View.show("listView");
   currentDeviceIndex = -1;
   renderDevices(discoveredDevices);
 }
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars -- called from HTML onclick
+// oxlint-disable-next-line no-unused-vars -- called from HTML onclick
 function showSettingsView(index) {
   currentDeviceIndex = index;
-  MpKit.View.show('settingsView');
+  MpKit.View.show("settingsView");
   loadDeviceSettings(index);
 }
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars -- called from HTML onclick
+// oxlint-disable-next-line no-unused-vars -- called from HTML onclick
 function confirmRemove(index, btn) {
   const container = btn.parentElement;
   container.innerHTML = `
@@ -107,7 +110,7 @@ function confirmRemove(index, btn) {
   `;
 }
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars -- called from HTML onclick
+// oxlint-disable-next-line no-unused-vars -- called from HTML onclick
 async function removeDevice(index) {
   const device = discoveredDevices[index];
   if (!device) {
@@ -121,57 +124,65 @@ async function removeDevice(index) {
     await saveDevicesToConfig(remaining);
     discoveredDevices = remaining;
     renderDevices(discoveredDevices);
-    showToast(`Removed ${name}`, 'success');
+    showToast(`Removed ${name}`, "success");
   } catch (e) {
-    console.error('[KeyLights] Failed to remove device:', e);
+    console.error("[KeyLights] Failed to remove device:", e);
     renderDevices(discoveredDevices);
-    showToast(`Remove failed: ${e.message}`, 'danger');
+    showToast(`Remove failed: ${e.message}`, "danger");
   }
 }
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars -- called from HTML onclick
+// oxlint-disable-next-line no-unused-vars -- called from HTML onclick
 function toggleManualAdd() {
-  const form = document.getElementById('manualAddForm');
-  form.classList.toggle('d-none');
-  if (!form.classList.contains('d-none')) {
-    document.getElementById('manualIp').focus();
+  const form = document.getElementById("manualAddForm");
+  form.classList.toggle("d-none");
+  if (!form.classList.contains("d-none")) {
+    document.getElementById("manualIp").focus();
   }
 }
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars -- called from HTML onclick
+// oxlint-disable-next-line no-unused-vars -- called from HTML onclick
 async function addDeviceByIp() {
-  const ip = document.getElementById('manualIp').value.trim();
-  const port = parseInt(document.getElementById('manualPort').value) || ELGATO_DEFAULT_PORT;
+  const ip = document.getElementById("manualIp").value.trim();
+  const port =
+    parseInt(document.getElementById("manualPort").value) || ELGATO_DEFAULT_PORT;
 
   if (!ip) {
-    showToast('Please enter an IP address', 'danger');
+    showToast("Please enter an IP address", "danger");
     return;
   }
 
-  const alreadyConfigured = discoveredDevices.some(d => d.addresses?.[0] === ip || d.ip === ip);
+  const alreadyConfigured = discoveredDevices.some(
+    (d) => d.addresses?.[0] === ip || d.ip === ip,
+  );
   if (alreadyConfigured) {
-    showToast('A device with this IP is already configured', 'danger');
+    showToast("A device with this IP is already configured", "danger");
     return;
   }
 
-  const btn = document.getElementById('addManualSubmit');
+  const btn = document.getElementById("addManualSubmit");
   btn.disabled = true;
-  btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1" aria-hidden="true"></span>Adding...';
+  btn.innerHTML =
+    '<span class="spinner-border spinner-border-sm me-1" aria-hidden="true"></span>Adding...';
 
   try {
-    const result = await homebridge.request('/device/info', { host: ip, port });
+    const result = await homebridge.request("/device/info", { host: ip, port });
 
-    const deviceName = result.success ? (result.data?.displayName || result.data?.productName || `Key Light ${ip}`) : `Key Light ${ip}`;
-    const model = result.success ? (result.data?.productName || 'Key Light') : 'Key Light';
+    const deviceName = result.success
+      ? result.data?.displayName || result.data?.productName || `Key Light ${ip}`
+      : `Key Light ${ip}`;
+    const model = result.success
+      ? result.data?.productName || "Key Light"
+      : "Key Light";
 
     const newDevice = {
       name: deviceName,
-      mac: '',
+      mac: "",
       host: ip,
       ip,
       port,
       model,
-      displayName: '',
+      displayName: "",
       powerOnBehavior: POWER_ON_BEHAVIOR.USE_GLOBAL,
       enabled: true,
       online: result.success,
@@ -182,13 +193,18 @@ async function addDeviceByIp() {
     await saveDevicesToConfig(discoveredDevices);
     renderDevices(discoveredDevices);
 
-    document.getElementById('manualAddForm').classList.add('d-none');
-    document.getElementById('manualIp').value = '';
-    document.getElementById('manualPort').value = String(ELGATO_DEFAULT_PORT);
+    document.getElementById("manualAddForm").classList.add("d-none");
+    document.getElementById("manualIp").value = "";
+    document.getElementById("manualPort").value = String(ELGATO_DEFAULT_PORT);
 
-    showToast(result.success ? `Added ${deviceName}` : `Added device at ${ip} (offline — check IP/port)`, result.success ? 'success' : 'info');
+    showToast(
+      result.success
+        ? `Added ${deviceName}`
+        : `Added device at ${ip} (offline — check IP/port)`,
+      result.success ? "success" : "info",
+    );
   } catch (error) {
-    showToast(`Failed to add device: ${error.message}`, 'danger');
+    showToast(`Failed to add device: ${error.message}`, "danger");
   } finally {
     btn.disabled = false;
     btn.innerHTML = '<i class="bi bi-plus-circle me-1"></i>Add';
@@ -196,13 +212,14 @@ async function addDeviceByIp() {
 }
 
 async function discoverDevices() {
-  const btn = document.getElementById('discoverBtn');
+  const btn = document.getElementById("discoverBtn");
 
   btn.disabled = true;
-  btn.innerHTML = '<span class="spinner-border spinner-discover me-1" role="status" aria-hidden="true"></span> Scanning network...';
+  btn.innerHTML =
+    '<span class="spinner-border spinner-discover me-1" role="status" aria-hidden="true"></span> Scanning network...';
 
   try {
-    const discovered = await homebridge.request('/discover');
+    const discovered = await homebridge.request("/discover");
 
     // Merge: update existing configured devices, add new ones
     const mergedDevices = mergeDevices(configuredDevices, discovered);
@@ -212,17 +229,17 @@ async function discoverDevices() {
     // Report new devices not in config. They are only displayed, never saved
     // automatically — auto-saving here would silently re-add devices the user
     // just removed. They are persisted on the next explicit save action.
-    const newDevices = discovered.filter(d =>
-      !configuredDevices.some(c => c.mac === d.mac),
+    const newDevices = discovered.filter(
+      (d) => !configuredDevices.some((c) => c.mac === d.mac),
     );
 
     if (newDevices.length > 0) {
-      showToast(`Found ${newDevices.length} new device(s)`, 'success');
+      showToast(`Found ${newDevices.length} new device(s)`, "success");
     }
   } catch (error) {
-    discoveredDevices = discoveredDevices.map(d => ({ ...d, online: false }));
+    discoveredDevices = discoveredDevices.map((d) => ({ ...d, online: false }));
     renderDevices(discoveredDevices);
-    showToast('Discovery failed: ' + error.message, 'danger');
+    showToast("Discovery failed: " + error.message, "danger");
   } finally {
     btn.disabled = false;
     btn.innerHTML = '<i class="bi bi-search me-1"></i> Discover';
@@ -234,7 +251,7 @@ function mergeDevices(configured, discovered) {
 
   // First, update all configured devices with discovery info
   for (const config of configured) {
-    const found = discovered.find(d => d.mac === config.mac);
+    const found = discovered.find((d) => d.mac === config.mac);
     if (found) {
       merged.push({
         ...config,
@@ -257,7 +274,7 @@ function mergeDevices(configured, discovered) {
 
   // Then add any newly discovered devices not in config
   for (const device of discovered) {
-    if (!configured.some(c => c.mac === device.mac)) {
+    if (!configured.some((c) => c.mac === device.mac)) {
       merged.push({
         ...device,
         enabled: true,
@@ -270,14 +287,14 @@ function mergeDevices(configured, discovered) {
 }
 
 async function saveDevicesToConfig(devices) {
-  const devicesToSave = devices.map(d => ({
+  const devicesToSave = devices.map((d) => ({
     name: d.name,
     mac: d.mac,
     host: d.host,
-    ip: d.addresses?.[0] || d.ip || '',
+    ip: d.addresses?.[0] || d.ip || "",
     port: d.port || ELGATO_DEFAULT_PORT,
-    model: d.model || 'Key Light',
-    displayName: d.displayName || '',
+    model: d.model || "Key Light",
+    displayName: d.displayName || "",
     powerOnBehavior: d.powerOnBehavior || POWER_ON_BEHAVIOR.USE_GLOBAL,
     powerOnBrightness: d.powerOnBrightness,
     powerOnTemperature: d.powerOnTemperature,
@@ -288,7 +305,7 @@ async function saveDevicesToConfig(devices) {
 
   if (!pluginConfig || pluginConfig.length === 0) {
     // First-time setup: platform block not yet in config.json — create it
-    pluginConfig = [{ platform: 'ElgatoKeyLights', name: 'Elgato Key Lights' }];
+    pluginConfig = [{ platform: "ElgatoKeyLights", name: "Elgato Key Lights" }];
   }
 
   pluginConfig[0].devices = devicesToSave;
@@ -309,42 +326,43 @@ async function persistPluginConfig() {
 }
 
 function renderDevices(devices) {
-  const deviceList = document.getElementById('deviceList');
+  const deviceList = document.getElementById("deviceList");
 
   if (devices.length === 0) {
     deviceList.innerHTML = MpKit.EmptyState.render({
-      iconClass: 'bi bi-lightbulb',
-      title: 'No Key Lights configured',
-      hint: 'Click Discover to find devices on your network',
+      iconClass: "bi bi-lightbulb",
+      title: "No Key Lights configured",
+      hint: "Click Discover to find devices on your network",
     });
     return;
   }
 
   deviceList.innerHTML = `
     <div class="list-group list-group-flush">
-      ${devices.map((device, index) => {
-    const isOffline = device.online === false;
-    const isChecking = device.online === null;
-    const statusBadge = isChecking
-      ? MpKit.StatusBadge.checking()
-      : isOffline
-        ? MpKit.StatusBadge.offline()
-        : MpKit.StatusBadge.online();
-    return `
-        <div class="list-group-item mp-device-card d-flex justify-content-between align-items-center py-3 ${isOffline ? 'opacity-50' : ''}" onclick="showSettingsView(${index})">
+      ${devices
+        .map((device, index) => {
+          const isOffline = device.online === false;
+          const isChecking = device.online === null;
+          const statusBadge = isChecking
+            ? MpKit.StatusBadge.checking()
+            : isOffline
+              ? MpKit.StatusBadge.offline()
+              : MpKit.StatusBadge.online();
+          return `
+        <div class="list-group-item mp-device-card d-flex justify-content-between align-items-center py-3 ${isOffline ? "opacity-50" : ""}" onclick="showSettingsView(${index})">
           <div class="d-flex align-items-center">
             <div class="me-3">
-              <i class="bi bi-lightbulb-fill fs-3 ${isOffline ? 'text-secondary' : 'text-warning'}"></i>
+              <i class="bi bi-lightbulb-fill fs-3 ${isOffline ? "text-secondary" : "text-warning"}"></i>
             </div>
             <div>
               <div class="fw-semibold">
                 ${device.displayName || device.name}
-                ${device.enabled === false ? `<span class="ms-2">${MpKit.StatusBadge.disabled()}</span>` : ''}
+                ${device.enabled === false ? `<span class="ms-2">${MpKit.StatusBadge.disabled()}</span>` : ""}
                 <span class="ms-2">${statusBadge}</span>
               </div>
               <div class="small text-body-secondary">
-                <span class="me-2"><i class="bi bi-box me-1"></i>${device.model || 'Key Light'}</span>
-                <span><i class="bi bi-ethernet me-1"></i>${device.addresses?.[0] || device.ip || device.host || 'Unknown'}</span>
+                <span class="me-2"><i class="bi bi-box me-1"></i>${device.model || "Key Light"}</span>
+                <span><i class="bi bi-ethernet me-1"></i>${device.addresses?.[0] || device.ip || device.host || "Unknown"}</span>
               </div>
             </div>
           </div>
@@ -357,22 +375,25 @@ function renderDevices(devices) {
           </div>
         </div>
       `;
-  }).join('')}
+        })
+        .join("")}
     </div>
   `;
 }
 
 async function loadDeviceSettings(index) {
   const device = discoveredDevices[index];
-  const settingsContent = document.getElementById('settingsContent');
+  const settingsContent = document.getElementById("settingsContent");
 
-  document.getElementById('settingsDeviceName').textContent = device.displayName || device.name;
-  document.getElementById('settingsDeviceModel').textContent = device.model || 'Key Light';
-  document.getElementById('settingsDeviceStatus').innerHTML = device.online
+  document.getElementById("settingsDeviceName").textContent =
+    device.displayName || device.name;
+  document.getElementById("settingsDeviceModel").textContent =
+    device.model || "Key Light";
+  document.getElementById("settingsDeviceStatus").innerHTML = device.online
     ? MpKit.StatusBadge.online()
     : MpKit.StatusBadge.offline();
 
-  settingsContent.innerHTML = MpKit.Loading.render('Loading device information...');
+  settingsContent.innerHTML = MpKit.Loading.render("Loading device information...");
 
   let deviceInfo = null;
   let currentState = null;
@@ -382,8 +403,8 @@ async function loadDeviceSettings(index) {
       const host = device.addresses?.[0] || device.ip || device.host;
       const port = device.port || ELGATO_DEFAULT_PORT;
       const [infoResult, settingsResult] = await Promise.all([
-        homebridge.request('/device/info', { host, port }),
-        homebridge.request('/device/settings', { host, port }),
+        homebridge.request("/device/info", { host, port }),
+        homebridge.request("/device/settings", { host, port }),
       ]);
       if (infoResult.success) {
         deviceInfo = infoResult.data;
@@ -392,7 +413,7 @@ async function loadDeviceSettings(index) {
         currentState = settingsResult.data?.lights?.lights?.[0];
       }
     } catch (e) {
-      console.error('[KeyLights] Failed to get device info:', e);
+      console.error("[KeyLights] Failed to get device info:", e);
     }
   }
 
@@ -400,10 +421,14 @@ async function loadDeviceSettings(index) {
 }
 
 function renderDeviceSettings(device, deviceInfo, currentState) {
-  const settingsContent = document.getElementById('settingsContent');
+  const settingsContent = document.getElementById("settingsContent");
   const host = device.addresses?.[0] || device.ip || device.host;
-  const kelvinTemp = currentState?.temperature ? Math.round(MIRED_CONVERSION_FACTOR / currentState.temperature) : null;
-  const tempPercent = kelvinTemp ? ((kelvinTemp - TEMPERATURE_MIN) / (TEMPERATURE_MAX - TEMPERATURE_MIN) * 100) : BRIGHTNESS_DEFAULT;
+  const kelvinTemp = currentState?.temperature
+    ? Math.round(MIRED_CONVERSION_FACTOR / currentState.temperature)
+    : null;
+  const tempPercent = kelvinTemp
+    ? ((kelvinTemp - TEMPERATURE_MIN) / (TEMPERATURE_MAX - TEMPERATURE_MIN)) * 100
+    : BRIGHTNESS_DEFAULT;
 
   settingsContent.innerHTML = `
     <!-- Tabs Navigation -->
@@ -429,7 +454,9 @@ function renderDeviceSettings(device, deviceInfo, currentState) {
     <div class="tab-content">
       <!-- Status Tab -->
       <div class="tab-pane fade show active" id="status-pane" role="tabpanel">
-        ${currentState ? `
+        ${
+          currentState
+            ? `
           <div class="card mp-settings-card mb-4">
             <div class="card-body">
               <div class="row g-4 mb-4">
@@ -437,9 +464,11 @@ function renderDeviceSettings(device, deviceInfo, currentState) {
                   <div class="d-flex align-items-center gap-3">
                     <span class="text-body-secondary" style="width: 90px;">Power</span>
                     <div class="fs-5">
-                      ${currentState.on
-    ? '<span class="badge bg-success"><i class="bi bi-circle-fill me-1"></i>On</span>'
-    : '<span class="badge bg-secondary"><i class="bi bi-circle me-1"></i>Off</span>'}
+                      ${
+                        currentState.on
+                          ? '<span class="badge bg-success"><i class="bi bi-circle-fill me-1"></i>On</span>'
+                          : '<span class="badge bg-secondary"><i class="bi bi-circle me-1"></i>Off</span>'
+                      }
                     </div>
                   </div>
                 </div>
@@ -466,7 +495,7 @@ function renderDeviceSettings(device, deviceInfo, currentState) {
                         <div class="progress-bar" role="progressbar" style="width: ${tempPercent}%; background: transparent; border-right: 3px solid var(--mp-primary);"></div>
                       </div>
                     </div>
-                    <span class="fw-bold" style="min-width: 60px; text-align: right;">${kelvinTemp ? kelvinTemp + 'K' : 'N/A'}</span>
+                    <span class="fw-bold" style="min-width: 60px; text-align: right;">${kelvinTemp ? kelvinTemp + "K" : "N/A"}</span>
                   </div>
                 </div>
               </div>
@@ -481,11 +510,13 @@ function renderDeviceSettings(device, deviceInfo, currentState) {
             </button>
             <span id="testResult" class="align-self-center ms-2"></span>
           </div>
-        ` : `
+        `
+            : `
           <div class="alert alert-secondary">
             <i class="bi bi-wifi-off me-2"></i>Device is offline. Status unavailable.
           </div>
-        `}
+        `
+        }
       </div>
 
       <!-- Settings Tab -->
@@ -498,23 +529,23 @@ function renderDeviceSettings(device, deviceInfo, currentState) {
               <div class="col-md-6">
                 <div class="mb-4">
                   <div class="form-check form-switch">
-                    <input class="form-check-input" type="checkbox" id="deviceEnabled" ${device.enabled !== false ? 'checked' : ''}>
+                    <input class="form-check-input" type="checkbox" id="deviceEnabled" ${device.enabled !== false ? "checked" : ""}>
                     <label class="form-check-label" for="deviceEnabled">Enable this device in HomeKit</label>
                   </div>
                 </div>
 
                 <div class="mb-4">
                   <label class="form-label" for="displayName">Display Name</label>
-                  <input type="text" class="form-control" id="displayName" value="${device.displayName || ''}" placeholder="${device.name}">
+                  <input type="text" class="form-control" id="displayName" value="${device.displayName || ""}" placeholder="${device.name}">
                   <div class="form-text">Custom name to show in HomeKit (leave empty to use device name)</div>
                 </div>
 
                 <div class="mb-0">
                   <label class="form-label" for="powerOnBehavior">Power On Behavior</label>
                   <select class="form-select" id="powerOnBehavior">
-                    <option value="${POWER_ON_BEHAVIOR.USE_GLOBAL}" ${device.powerOnBehavior === POWER_ON_BEHAVIOR.USE_GLOBAL || !device.powerOnBehavior ? 'selected' : ''}>Use global setting</option>
-                    <option value="${POWER_ON_BEHAVIOR.RESTORE_LAST}" ${device.powerOnBehavior === POWER_ON_BEHAVIOR.RESTORE_LAST ? 'selected' : ''}>Restore last settings used</option>
-                    <option value="${POWER_ON_BEHAVIOR.USE_DEFAULT}" ${device.powerOnBehavior === POWER_ON_BEHAVIOR.USE_DEFAULT ? 'selected' : ''}>Use default settings below</option>
+                    <option value="${POWER_ON_BEHAVIOR.USE_GLOBAL}" ${device.powerOnBehavior === POWER_ON_BEHAVIOR.USE_GLOBAL || !device.powerOnBehavior ? "selected" : ""}>Use global setting</option>
+                    <option value="${POWER_ON_BEHAVIOR.RESTORE_LAST}" ${device.powerOnBehavior === POWER_ON_BEHAVIOR.RESTORE_LAST ? "selected" : ""}>Restore last settings used</option>
+                    <option value="${POWER_ON_BEHAVIOR.USE_DEFAULT}" ${device.powerOnBehavior === POWER_ON_BEHAVIOR.USE_DEFAULT ? "selected" : ""}>Use default settings below</option>
                   </select>
                 </div>
               </div>
@@ -582,23 +613,23 @@ function renderDeviceSettings(device, deviceInfo, currentState) {
             <div class="row g-3">
               <div class="col-md-6">
                 <label class="mp-label mb-1">Product</label>
-                <div class="fw-medium">${deviceInfo?.productName || device.model || 'Elgato Key Light'}</div>
+                <div class="fw-medium">${deviceInfo?.productName || device.model || "Elgato Key Light"}</div>
               </div>
               <div class="col-md-6">
                 <label class="mp-label mb-1">Serial Number</label>
-                <div class="fw-medium font-monospace">${deviceInfo?.serialNumber || 'Unknown'}</div>
+                <div class="fw-medium font-monospace">${deviceInfo?.serialNumber || "Unknown"}</div>
               </div>
               <div class="col-md-6">
                 <label class="mp-label mb-1">Firmware Version</label>
-                <div class="fw-medium">${deviceInfo?.firmwareVersion || 'Unknown'}</div>
+                <div class="fw-medium">${deviceInfo?.firmwareVersion || "Unknown"}</div>
               </div>
               <div class="col-md-6">
                 <label class="mp-label mb-1">MAC Address</label>
-                <div class="fw-medium font-monospace">${device.mac || 'Unknown'}</div>
+                <div class="fw-medium font-monospace">${device.mac || "Unknown"}</div>
               </div>
               <div class="col-md-6">
                 <label class="mp-label mb-1">IP Address</label>
-                <div class="fw-medium font-monospace">${host || 'Unknown'}</div>
+                <div class="fw-medium font-monospace">${host || "Unknown"}</div>
               </div>
               <div class="col-md-6">
                 <label class="mp-label mb-1">Port</label>
@@ -612,66 +643,75 @@ function renderDeviceSettings(device, deviceInfo, currentState) {
   `;
 }
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars -- called from HTML oninput
+// oxlint-disable-next-line no-unused-vars -- called from HTML oninput
 function updateBrightnessValue(value) {
-  document.getElementById('brightnessValue').textContent = value + '%';
+  document.getElementById("brightnessValue").textContent = value + "%";
 }
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars -- called from HTML oninput
+// oxlint-disable-next-line no-unused-vars -- called from HTML oninput
 function updateTemperatureValue(value) {
-  document.getElementById('temperatureValue').textContent = value + 'K';
+  document.getElementById("temperatureValue").textContent = value + "K";
 }
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars -- called from HTML onclick
+// oxlint-disable-next-line no-unused-vars -- called from HTML onclick
 async function saveDeviceSettings(index) {
   const device = discoveredDevices[index];
 
-  device.enabled = document.getElementById('deviceEnabled').checked;
-  device.displayName = document.getElementById('displayName').value.trim();
-  device.powerOnBehavior = parseInt(document.getElementById('powerOnBehavior').value);
-  device.powerOnBrightness = parseInt(document.getElementById('powerOnBrightness').value);
-  device.powerOnTemperature = parseInt(document.getElementById('powerOnTemperature').value);
+  device.enabled = document.getElementById("deviceEnabled").checked;
+  device.displayName = document.getElementById("displayName").value.trim();
+  device.powerOnBehavior = parseInt(document.getElementById("powerOnBehavior").value);
+  device.powerOnBrightness = parseInt(
+    document.getElementById("powerOnBrightness").value,
+  );
+  device.powerOnTemperature = parseInt(
+    document.getElementById("powerOnTemperature").value,
+  );
 
   discoveredDevices[index] = device;
 
   try {
     await saveDevicesToConfig(discoveredDevices);
-    showToast('Device settings saved', 'success');
-    document.getElementById('settingsDeviceName').textContent = device.displayName || device.name;
+    showToast("Device settings saved", "success");
+    document.getElementById("settingsDeviceName").textContent =
+      device.displayName || device.name;
   } catch (e) {
-    console.error('[KeyLights] Failed to save device settings:', e);
-    showToast(`Save failed: ${e.message}`, 'danger');
+    console.error("[KeyLights] Failed to save device settings:", e);
+    showToast(`Save failed: ${e.message}`, "danger");
   }
 }
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars -- called from HTML onclick
+// oxlint-disable-next-line no-unused-vars -- called from HTML onclick
 async function identifyDevice(index) {
   const device = discoveredDevices[index];
   const host = device.addresses?.[0] || device.ip || device.host;
   try {
-    const result = await homebridge.request('/device/identify', {
+    const result = await homebridge.request("/device/identify", {
       host,
       port: device.port || ELGATO_DEFAULT_PORT,
     });
     if (result.success) {
-      showToast(`Identifying ${device.name}...`, 'success');
+      showToast(`Identifying ${device.name}...`, "success");
     } else {
-      showToast(`Failed to identify: ${result.error}`, 'danger');
+      showToast(`Failed to identify: ${result.error}`, "danger");
     }
   } catch (error) {
-    showToast(`Error: ${error.message}`, 'danger');
+    showToast(`Error: ${error.message}`, "danger");
   }
 }
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars -- called from HTML onclick
+// oxlint-disable-next-line no-unused-vars -- called from HTML onclick
 async function testConnection(index) {
   const device = discoveredDevices[index];
   const host = device.addresses?.[0] || device.ip || device.host;
-  const resultSpan = document.getElementById('testResult');
-  resultSpan.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> Testing...';
+  const resultSpan = document.getElementById("testResult");
+  resultSpan.innerHTML =
+    '<span class="spinner-border spinner-border-sm me-1"></span> Testing...';
 
   try {
-    const result = await homebridge.request('/device/test', { host, port: device.port || ELGATO_DEFAULT_PORT });
+    const result = await homebridge.request("/device/test", {
+      host,
+      port: device.port || ELGATO_DEFAULT_PORT,
+    });
     if (result.success) {
       resultSpan.innerHTML = `<span class="badge bg-success"><i class="bi bi-check-circle me-1"></i>Connected (${result.latency}ms)</span>`;
     } else {
@@ -683,10 +723,10 @@ async function testConnection(index) {
 }
 
 function showToast(message, type) {
-  if (typeof homebridge !== 'undefined' && homebridge.toast) {
-    if (type === 'success') {
+  if (typeof homebridge !== "undefined" && homebridge.toast) {
+    if (type === "success") {
       homebridge.toast.success(message);
-    } else if (type === 'danger') {
+    } else if (type === "danger") {
       homebridge.toast.error(message);
     } else {
       homebridge.toast.info(message);

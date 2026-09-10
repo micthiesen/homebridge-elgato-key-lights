@@ -1,7 +1,11 @@
-import type { CharacteristicValue, Logger } from 'homebridge';
-import axios from 'axios';
+import type { CharacteristicValue, Logger } from "homebridge";
+import axios from "axios";
 
-import { API_PATHS, DEFAULT_POLLING_RATE_MS, clampColorTemperature } from '../config/constants.js';
+import {
+  API_PATHS,
+  DEFAULT_POLLING_RATE_MS,
+  clampColorTemperature,
+} from "../config/constants.js";
 import type {
   KeyLight,
   KeyLightSettings,
@@ -9,8 +13,8 @@ import type {
   KeyLightOptions,
   LightProperty,
   PropertyChangedCallback,
-} from '../types/index.js';
-import { resolveHostname } from '../utils/dns-resolver.js';
+} from "../types/index.js";
+import { resolveHostname } from "../utils/dns-resolver.js";
 
 /**
  * Represents an initialized Key Light device instance.
@@ -48,10 +52,18 @@ export class KeyLightInstance implements KeyLight {
     log: Logger,
     pollingRate?: number,
   ): Promise<KeyLightInstance> {
-    const instance = new KeyLightInstance(data, log, pollingRate ?? DEFAULT_POLLING_RATE_MS);
+    const instance = new KeyLightInstance(
+      data,
+      log,
+      pollingRate ?? DEFAULT_POLLING_RATE_MS,
+    );
 
     // Try to resolve the hostname using multiple methods (DNS, ARP, fallback addresses)
-    const resolvedHostname = await resolveHostname(data.hostname, data.mac, data.addresses);
+    const resolvedHostname = await resolveHostname(
+      data.hostname,
+      data.mac,
+      data.addresses,
+    );
     if (resolvedHostname !== data.hostname) {
       log.info(`Resolved ${data.hostname} to ${resolvedHostname} for ${data.name}`);
       instance.hostname = resolvedHostname;
@@ -68,7 +80,7 @@ export class KeyLightInstance implements KeyLight {
       instance.options = optionsResponse.data;
       instance.settings = settingsResponse.data;
     } catch (error) {
-      const message = error instanceof Error ? error.message : 'Unknown error';
+      const message = error instanceof Error ? error.message : "Unknown error";
       log.error(`Failed to initialize device ${data.name}: ${message}`);
       throw new Error(`Device initialization failed: ${message}`, { cause: error });
     }
@@ -78,29 +90,29 @@ export class KeyLightInstance implements KeyLight {
   }
 
   public get serialNumber(): string {
-    return this.info?.serialNumber ?? 'unknown';
+    return this.info?.serialNumber ?? "unknown";
   }
 
   public get manufacturer(): string {
-    const productName = this.info?.productName ?? 'unknown';
-    const spaceIndex = productName.indexOf(' ');
+    const productName = this.info?.productName ?? "unknown";
+    const spaceIndex = productName.indexOf(" ");
     return spaceIndex > 0 ? productName.substring(0, spaceIndex) : productName;
   }
 
   public get model(): string {
-    return this.info?.productName ?? 'unknown';
+    return this.info?.productName ?? "unknown";
   }
 
   public get displayName(): string {
     const infoDisplayName = this.info?.displayName;
-    if (!infoDisplayName || infoDisplayName === '') {
+    if (!infoDisplayName || infoDisplayName === "") {
       return this.name;
     }
     return infoDisplayName;
   }
 
   public get firmwareVersion(): string {
-    return this.info?.firmwareVersion ?? '1.0';
+    return this.info?.firmwareVersion ?? "1.0";
   }
 
   private get baseEndpoint(): string {
@@ -137,7 +149,7 @@ export class KeyLightInstance implements KeyLight {
       this.settings = response.data;
       this.log.debug(`Updated device settings of ${this.displayName}`);
     } catch (error) {
-      const message = error instanceof Error ? error.message : 'Unknown error';
+      const message = error instanceof Error ? error.message : "Unknown error";
       this.log.error(`Failed to update settings of ${this.displayName}: ${message}`);
       // Fall back to the requested settings
       this.settings = settings;
@@ -152,7 +164,7 @@ export class KeyLightInstance implements KeyLight {
       await axios.post(this.identifyEndpoint);
       this.log.debug(`Identify triggered for ${this.displayName}`);
     } catch (error) {
-      const message = error instanceof Error ? error.message : 'Unknown error';
+      const message = error instanceof Error ? error.message : "Unknown error";
       this.log.debug(`Identify failed for ${this.displayName}: ${message}`);
     }
   }
@@ -160,7 +172,10 @@ export class KeyLightInstance implements KeyLight {
   /**
    * Set a light property (on, brightness, or temperature)
    */
-  public async setProperty(property: LightProperty, value: CharacteristicValue): Promise<void> {
+  public async setProperty(
+    property: LightProperty,
+    value: CharacteristicValue,
+  ): Promise<void> {
     await axios.put(this.lightsEndpoint, { lights: [{ [property]: value }] });
   }
 
@@ -170,7 +185,7 @@ export class KeyLightInstance implements KeyLight {
   public getProperty(property: LightProperty): number {
     const value = this.options?.lights[0][property] ?? 0;
     // Clamp temperature to valid HomeKit range (device may return out-of-range values)
-    if (property === 'temperature') {
+    if (property === "temperature") {
       return clampColorTemperature(value);
     }
     return value;
@@ -191,13 +206,16 @@ export class KeyLightInstance implements KeyLight {
           const newLight = response.data.lights[0];
 
           if (oldLight.on !== newLight.on) {
-            this.propertyChangedCallback('on', newLight.on);
+            this.propertyChangedCallback("on", newLight.on);
           }
           if (oldLight.temperature !== newLight.temperature) {
-            this.propertyChangedCallback('temperature', clampColorTemperature(newLight.temperature));
+            this.propertyChangedCallback(
+              "temperature",
+              clampColorTemperature(newLight.temperature),
+            );
           }
           if (oldLight.brightness !== newLight.brightness) {
-            this.propertyChangedCallback('brightness', newLight.brightness);
+            this.propertyChangedCallback("brightness", newLight.brightness);
           }
         }
 

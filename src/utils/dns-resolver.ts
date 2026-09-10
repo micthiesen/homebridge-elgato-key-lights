@@ -1,7 +1,7 @@
-import { exec } from 'child_process';
-import { promisify } from 'util';
+import { exec } from "child_process";
+import { promisify } from "util";
 
-import { ARP_TIMEOUT_MS, MAX_IPV4_OCTET } from '../config/constants.js';
+import { ARP_TIMEOUT_MS, MAX_IPV4_OCTET } from "../config/constants.js";
 
 const execAsync = promisify(exec);
 
@@ -13,8 +13,8 @@ export function isIPv4Address(str: string): boolean {
   if (!ipv4Regex.test(str)) {
     return false;
   }
-  const parts = str.split('.');
-  return parts.every(part => {
+  const parts = str.split(".");
+  return parts.every((part) => {
     const num = parseInt(part, 10);
     return num >= 0 && num <= MAX_IPV4_OCTET;
   });
@@ -24,14 +24,14 @@ export function isIPv4Address(str: string): boolean {
  * Normalize MAC address to lowercase without separators for comparison
  */
 function normalizeMacAddress(mac: string): string {
-  return mac.toLowerCase().replace(/[:\-.]/g, '');
+  return mac.toLowerCase().replace(/[:\-.]/g, "");
 }
 
 /**
  * Normalize MAC addresses within a line for comparison
  */
 function normalizeMacInLine(line: string): string {
-  return line.replace(/[:\-.]/g, '');
+  return line.replace(/[:\-.]/g, "");
 }
 
 /**
@@ -40,22 +40,22 @@ function normalizeMacInLine(line: string): string {
 function getArpCommands(): string[] {
   const platform = process.platform;
 
-  if (platform === 'darwin') {
-    return ['arp -a'];
-  } else if (platform === 'linux') {
-    return ['ip neighbor show', 'arp -a'];
-  } else if (platform === 'win32') {
-    return ['arp -a'];
+  if (platform === "darwin") {
+    return ["arp -a"];
+  } else if (platform === "linux") {
+    return ["ip neighbor show", "arp -a"];
+  } else if (platform === "win32") {
+    return ["arp -a"];
   }
 
-  return ['arp -a'];
+  return ["arp -a"];
 }
 
 /**
  * Parse ARP command output to find IP for given MAC address
  */
 function parseArpOutput(output: string, targetMac: string): string | null {
-  const lines = output.split('\n');
+  const lines = output.split("\n");
 
   for (const line of lines) {
     const normalizedLine = normalizeMacInLine(line.toLowerCase());

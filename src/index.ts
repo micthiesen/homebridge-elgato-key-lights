@@ -1,7 +1,7 @@
-import type { API } from 'homebridge';
+import type { API } from "homebridge";
 
-import { PLATFORM_NAME } from './config/settings.js';
-import { KeyLightsPlatform } from './platform/KeyLightsPlatform.js';
+import { PLATFORM_NAME } from "./config/settings.js";
+import { KeyLightsPlatform } from "./platform/KeyLightsPlatform.js";
 
 /**
  * This method registers the platform with Homebridge

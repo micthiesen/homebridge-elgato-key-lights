@@ -34,5 +34,5 @@ Exports all shared types and interfaces:
 Import types as needed:
 
 ```typescript
-import { KeyLight, KeyLightSettings, LightProperty } from './types/index.js';
+import type { KeyLight, KeyLightSettings, LightProperty } from './types/index.js';
 ```

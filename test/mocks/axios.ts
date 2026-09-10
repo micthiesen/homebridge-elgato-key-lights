@@ -1,5 +1,5 @@
-import { vi } from 'vitest';
-import type { AxiosResponse } from 'axios';
+import { vi } from "vitest";
+import type { AxiosResponse } from "axios";
 
 /**
  * Creates a mock Axios response
@@ -8,7 +8,7 @@ export function createAxiosResponse<T>(data: T, status = 200): AxiosResponse<T> 
   return {
     data,
     status,
-    statusText: 'OK',
+    statusText: "OK",
     headers: {},
     config: {
       headers: {},
@@ -47,13 +47,13 @@ export function setupKeyLightApiMock(
   },
 ) {
   mockAxios.get.mockImplementation((url: string) => {
-    if (url.includes('accessory-info')) {
+    if (url.includes("accessory-info")) {
       return Promise.resolve(createAxiosResponse(responses.info));
     }
-    if (url.includes('lights/settings')) {
+    if (url.includes("lights/settings")) {
       return Promise.resolve(createAxiosResponse(responses.settings));
     }
-    if (url.includes('lights')) {
+    if (url.includes("lights")) {
       return Promise.resolve(createAxiosResponse(responses.options));
     }
     return Promise.reject(new Error(`Unexpected URL: ${url}`));

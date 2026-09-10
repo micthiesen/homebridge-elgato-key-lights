@@ -1,130 +1,26 @@
-# Test Suite
+# Tests
 
-Unit and integration tests for the Homebridge Elgato Key Lights plugin.
-
-## Setup
-
-Install dependencies:
+The plugin uses Vitest. Install dependencies with `pnpm install`, then run:
 
 ```bash
-npm install
+pnpm test
+pnpm test:coverage
+pnpm exec vitest run test/unit/KeyLightInstance.test.ts
+pnpm exec vitest run -t 'polling'
+pnpm exec vitest
 ```
 
-## Running Tests
+`test/unit/` covers device communication, discovery, the device catalog, DNS, and
+constants. `test/mocks/` provides Homebridge and Axios mocks;
+`test/fixtures/keylight.ts` provides device response factories.
 
-```bash
-# Run all tests once
-npm test
+Mock HTTP, DNS, mDNS, and Homebridge boundaries. Automated tests must not contact
+real lights or use live credentials. Use fake timers for polling tests and stop
+instances, clear mocks, and restore timers after each test. Cover observable
+behavior and failure paths rather than reproducing implementation details.
 
-# Run tests in watch mode (re-runs on file changes)
-npm run test:watch
+Coverage output is written to `coverage/`. Automated tests do not establish
+physical-device compatibility. Use `pnpm dev` for separate local Homebridge and
+hardware verification, and report exactly what was exercised.
 
-# Run tests with coverage report
-npm run test:coverage
-
-# Run tests with interactive UI
-npm run test:ui
-```
-
-## Directory Structure
-
-```
-test/
-├── unit/                    # Unit tests for individual classes/functions
-│   ├── KeyLightInstance.test.ts
-│   └── constants.test.ts
-├── integration/             # Integration tests (device discovery, API flows)
-├── mocks/                   # Mock implementations
-│   ├── homebridge.ts        # Homebridge API mocks (Logger, Service, etc.)
-│   └── axios.ts             # HTTP client mocks
-├── fixtures/                # Test data factories
-│   └── keylight.ts          # KeyLight data generators
-└── README.md
-```
-
-## Architecture
-
-### Mocks
-
-Located in `test/mocks/`:
-
-- **homebridge.ts**: Mock implementations for Homebridge APIs
-  - `createMockLogger()` - Mock Logger for capturing log output
-  - `createMockService()` - Mock Service with characteristic handling
-  - `createMockAccessory()` - Mock PlatformAccessory
-  - `createMockAPI()` - Mock Homebridge API
-
-- **axios.ts**: HTTP client mocking utilities
-  - `createAxiosResponse()` - Create mock Axios responses
-  - `setupKeyLightApiMock()` - Configure mocks for Key Light API endpoints
-
-### Fixtures
-
-Located in `test/fixtures/`:
-
-- **keylight.ts**: Factory functions for test data
-  - `createKeyLight()` - Basic device connection info
-  - `createKeyLightInfo()` - Device information response
-  - `createKeyLightOptions()` - Light state response
-  - `createKeyLightSettings()` - Device settings response
-
-### Writing Tests
-
-1. **Unit Tests** (`test/unit/`): Test individual classes in isolation
-   - Mock all external dependencies (axios, homebridge)
-   - Use fake timers for polling tests
-   - Clean up resources in `afterEach`
-
-2. **Integration Tests** (`test/integration/`): Test component interactions
-   - May use real implementations where appropriate
-   - Test device discovery flows
-   - Test accessory lifecycle
-
-### Example Test
-
-```typescript
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import axios from 'axios';
-import { KeyLightInstance } from '../../src/devices/KeyLightInstance.js';
-import { createMockLogger } from '../mocks/homebridge.js';
-import { createKeyLight, createKeyLightInfo } from '../fixtures/keylight.js';
-
-vi.mock('axios');
-
-describe('KeyLightInstance', () => {
-  beforeEach(() => {
-    vi.useFakeTimers();
-    // Setup mocks...
-  });
-
-  afterEach(() => {
-    vi.useRealTimers();
-    vi.clearAllMocks();
-  });
-
-  it('should create an instance', async () => {
-    const instance = await KeyLightInstance.createInstance(
-      createKeyLight(),
-      createMockLogger(),
-    );
-    expect(instance).toBeDefined();
-    instance.stopPolling();
-  });
-});
-```
-
-## Coverage
-
-Coverage reports are generated in:
-- `coverage/` - HTML report (open `coverage/index.html`)
-- Console output shows summary
-
-Target coverage: 80%+ for critical paths (device communication, state management).
-
-## Best Practices
-
-1. **Isolate tests**: Each test should be independent
-2. **Clean up**: Always stop polling intervals in `afterEach`
-3. **Use factories**: Use fixture factories for consistent test data
-4. **Mock external deps**: Never make real network calls in tests
-5. **Test edge cases**: Include error handling and boundary conditions
+The complete repository gate is documented in [AGENTS.md](../AGENTS.md).

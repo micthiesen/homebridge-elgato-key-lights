@@ -1,10 +1,12 @@
 # Homebridge Elgato Key Lights
 
+A maintained personal fork of the [upstream plugin](https://github.com/mp-consulting/homebridge-elgato-key-lights).
+
 A [Homebridge](https://homebridge.io) plugin for controlling [Elgato Key Light](https://www.elgato.com/en/key-light) and [Key Light Air](https://www.elgato.com/en/key-light-air) devices via HomeKit.
 
-[![npm](https://img.shields.io/npm/v/@mp-consulting/homebridge-elgato-key-lights)](https://www.npmjs.com/package/@mp-consulting/homebridge-elgato-key-lights)
-[![npm](https://img.shields.io/npm/dt/@mp-consulting/homebridge-elgato-key-lights)](https://www.npmjs.com/package/@mp-consulting/homebridge-elgato-key-lights)
-[![License](https://img.shields.io/npm/l/@mp-consulting/homebridge-elgato-key-lights)](LICENSE)
+[![npm](https://img.shields.io/npm/v/@micthiesen/homebridge-elgato-key-lights)](https://www.npmjs.com/package/@micthiesen/homebridge-elgato-key-lights)
+[![npm](https://img.shields.io/npm/dt/@micthiesen/homebridge-elgato-key-lights)](https://www.npmjs.com/package/@micthiesen/homebridge-elgato-key-lights)
+[![License](https://img.shields.io/npm/l/@micthiesen/homebridge-elgato-key-lights)](LICENSE)
 
 ## Features
 
@@ -16,7 +18,7 @@ A [Homebridge](https://homebridge.io) plugin for controlling [Elgato Key Light](
 
 ## Requirements
 
-- Node.js v22 or later
+- Node.js 22.10+, 24, or 26
 - Homebridge v1.8.0 or later
 
 ## Installation
@@ -25,13 +27,13 @@ A [Homebridge](https://homebridge.io) plugin for controlling [Elgato Key Light](
 
 1. Open Homebridge Config UI X
 2. Navigate to the Plugins tab
-3. Search for `@mp-consulting/homebridge-elgato-key-lights`
+3. Search for `@micthiesen/homebridge-elgato-key-lights`
 4. Click Install
 
 ### Via npm
 
 ```bash
-npm install -g @mp-consulting/homebridge-elgato-key-lights
+npm install -g @micthiesen/homebridge-elgato-key-lights
 ```
 
 ## Configuration
@@ -133,7 +135,7 @@ If you experience intermittent connection problems:
 
 1. Try setting `useIP: true` in your configuration
 2. Assign static IP addresses to your lights via your router's DHCP settings
-3. Reduce the `pollingRate` if your network is congested
+3. Increase `pollingRate` to poll less frequently if your network is congested
 
 ### Lights not responding
 
@@ -143,23 +145,64 @@ If you experience intermittent connection problems:
 
 ## Development
 
+Use the pnpm version pinned in `package.json` and a supported Node.js version.
+The plugin builds with TypeScript 7; Oxlint and Oxfmt enforce the shared
+TypeScript conventions used in `../omni-notify`.
+
 ```bash
-# Clone the repository
-git clone https://github.com/mp-consulting/homebridge-elgato-key-lights.git
+git clone https://github.com/micthiesen/homebridge-elgato-key-lights.git
 cd homebridge-elgato-key-lights
-
-# Install dependencies
-npm install
-
-# Build
-npm run build
-
-# Watch mode (for development)
-npm run watch
-
-# Lint
-npm run lint
+pnpm install
+pnpm check:write
+pnpm check
+pnpm typecheck
+pnpm test
+pnpm build
 ```
+
+`pnpm check:write` applies lint fixes and formatting. `pnpm check` verifies lint
+and formatting without modifying files. `pnpm test:coverage` generates coverage.
+For the first local run, create the development configuration:
+
+```bash
+cp test/hbConfig/config.sample.json test/hbConfig/config.json
+```
+
+Edit that local file as needed; it is ignored by Git.
+`pnpm dev` rebuilds on changes and runs Homebridge with this checkout as its
+plugin path and `test/hbConfig/` as its local storage directory. It does not use
+your normal Homebridge configuration or require a global npm link. It does not
+launch Homebridge Config UI X. Local discovery can still find real lights on your
+network.
+
+See [AGENTS.md](AGENTS.md) for architecture and contributor conventions and
+[test/README.md](test/README.md) for test isolation rules.
+
+## Releases
+
+GitHub Actions validates pull requests and pushes to `main` on Node.js 22, 24,
+and 26.
+Successful CI on `main` publishes an npm version when the version in
+`package.json` has not already been published. Bump that version deliberately,
+commit, and push to release. Repeated pushes with the same published version skip
+publishing. The package is public under the `@micthiesen` scope.
+
+The repository contains the [publishing workflow](.github/workflows/publish.yml),
+but npm account setup must be completed before automatic publishing can succeed:
+
+1. If the package does not yet exist, publish it once from an authenticated npm
+   account with access to the `@micthiesen` scope: run the validation commands
+   above, then `npm publish --access public`.
+2. In the npm package settings, add a GitHub Actions trusted publisher with
+   organization/user `micthiesen`, repository `homebridge-elgato-key-lights`, and
+   workflow filename `publish.yml`. Leave the environment name blank because this
+   workflow does not use a GitHub environment. Enable direct `npm publish` for
+   this publisher; stage-only publishing is not used here.
+3. Re-run the publishing workflow after setup. A bootstrapped version is skipped;
+   the next version bump exercises trusted publishing.
+
+The workflow requests an OIDC identity and uses `npm publish` directly. It does
+not require an `NPM_TOKEN` repository secret. Never commit npm credentials.
 
 ## Project Structure
 
@@ -179,4 +222,4 @@ src/
 
 ## Credits
 
-Originally forked from [homebridge-keylights](https://github.com/derjayjay/homebridge-keylights) by derjayjay.
+Forked from [MP Consulting’s plugin](https://github.com/mp-consulting/homebridge-elgato-key-lights), originally forked from [homebridge-keylights](https://github.com/derjayjay/homebridge-keylights) by derjayjay.

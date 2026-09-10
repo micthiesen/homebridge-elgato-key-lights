@@ -1,0 +1,32 @@
+{
+  "$schema": "./node_modules/oxlint/configuration_schema.json",
+  "plugins": ["typescript", "unicorn", "oxc"],
+  "categories": {
+    "correctness": "error"
+  },
+  "ignorePatterns": [
+    ".agents/**",
+    ".codex/**",
+    "dist/**",
+    "coverage/**",
+    "homebridge-ui/public/lib/**",
+    "pnpm-lock.yaml"
+  ],
+  "env": {
+    "builtin": true,
+    "node": true
+  },
+  "overrides": [
+    {
+      "files": ["homebridge-ui/public/**/*.js"],
+      "env": {
+        "browser": true
+      },
+      "globals": {
+        "homebridge": "readonly",
+        "bootstrap": "readonly",
+        "MpKit": "readonly"
+      }
+    }
+  ]
+}

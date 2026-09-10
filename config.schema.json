@@ -56,7 +56,6 @@
         "required": false,
         "default": 100,
         "description": "The duration of the switch on sequence"
-
       },
       "switchOffDurationMs": {
         "title": "Switch Off Duration (in milliseconds)",
@@ -64,7 +63,6 @@
         "required": false,
         "placeholder": 300,
         "description": "The duration of the switch off sequence"
-
       },
       "colorChangeDurationMs": {
         "title": "Colour Change Duration (in milliseconds)",
@@ -153,35 +151,25 @@
     "name",
     "pollingRate",
     {
-			"type": "fieldset",
+      "type": "fieldset",
       "title": "Durations",
-			"expandable": true,
-			"expanded": false,
-			"items": [
-				"switchOnDurationMs",
-				"switchOffDurationMs",
-				"colorChangeDurationMs"
-			]
+      "expandable": true,
+      "expanded": false,
+      "items": ["switchOnDurationMs", "switchOffDurationMs", "colorChangeDurationMs"]
     },
     {
-			"type": "fieldset",
+      "type": "fieldset",
       "title": "Power On Behaviour",
-			"expandable": true,
-			"expanded": false,
-			"items": [
-				"powerOnBehavior",
-				"powerOnBrightness",
-				"powerOnTemperature"
-			]
+      "expandable": true,
+      "expanded": false,
+      "items": ["powerOnBehavior", "powerOnBrightness", "powerOnTemperature"]
     },
     {
-			"type": "fieldset",
+      "type": "fieldset",
       "title": "Advanced",
-			"expandable": true,
-			"expanded": false,
-			"items": [
-				"useIP"
-			]
-		}
+      "expandable": true,
+      "expanded": false,
+      "items": ["useIP"]
+    }
   ]
 }

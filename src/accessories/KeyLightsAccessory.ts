@@ -4,12 +4,12 @@ import type {
   CharacteristicValue,
   CharacteristicSetCallback,
   CharacteristicGetCallback,
-} from 'homebridge';
+} from "homebridge";
 
-import type { KeyLightsPlatform } from '../platform/KeyLightsPlatform.js';
-import type { KeyLightInstance } from '../devices/KeyLightInstance.js';
-import { COLOR_TEMPERATURE, clampColorTemperature } from '../config/constants.js';
-import type { KeyLight, LightProperty } from '../types/index.js';
+import type { KeyLightsPlatform } from "../platform/KeyLightsPlatform.js";
+import type { KeyLightInstance } from "../devices/KeyLightInstance.js";
+import { COLOR_TEMPERATURE, clampColorTemperature } from "../config/constants.js";
+import type { KeyLight, LightProperty } from "../types/index.js";
 
 /**
  * Platform Accessory for the Key Light.
@@ -25,48 +25,65 @@ export class KeyLightsAccessory {
     private readonly displayName: string = light.displayName,
   ) {
     // Set accessory information
-    this.accessory.getService(this.platform.Service.AccessoryInformation)!
-      .setCharacteristic(this.platform.Characteristic.Manufacturer, this.light.manufacturer)
+    this.accessory
+      .getService(this.platform.Service.AccessoryInformation)!
+      .setCharacteristic(
+        this.platform.Characteristic.Manufacturer,
+        this.light.manufacturer,
+      )
       .setCharacteristic(this.platform.Characteristic.Model, this.light.model)
-      .setCharacteristic(this.platform.Characteristic.SerialNumber, this.light.serialNumber)
-      .setCharacteristic(this.platform.Characteristic.FirmwareRevision, this.light.firmwareVersion);
+      .setCharacteristic(
+        this.platform.Characteristic.SerialNumber,
+        this.light.serialNumber,
+      )
+      .setCharacteristic(
+        this.platform.Characteristic.FirmwareRevision,
+        this.light.firmwareVersion,
+      );
 
     this.light.onPropertyChanged = this.onPropertyChanged.bind(this);
 
     // Get the LightBulb service if it exists, otherwise create a new LightBulb service
-    this.service = this.accessory.getService(this.platform.Service.Lightbulb)
-      ?? this.accessory.addService(this.platform.Service.Lightbulb);
+    this.service =
+      this.accessory.getService(this.platform.Service.Lightbulb) ??
+      this.accessory.addService(this.platform.Service.Lightbulb);
 
     // Set the service name, this is what is displayed as the default name on the Home app
     this.service.setCharacteristic(this.platform.Characteristic.Name, this.displayName);
 
     // Set ConfiguredName for better HomeKit display
     this.service.addOptionalCharacteristic(this.platform.Characteristic.ConfiguredName);
-    this.service.updateCharacteristic(this.platform.Characteristic.ConfiguredName, this.displayName);
+    this.service.updateCharacteristic(
+      this.platform.Characteristic.ConfiguredName,
+      this.displayName,
+    );
 
     // Register handlers for the On/Off Characteristic
-    this.service.getCharacteristic(this.platform.Characteristic.On)
-      .on('set', this.setOn.bind(this))
-      .on('get', this.getOn.bind(this));
+    this.service
+      .getCharacteristic(this.platform.Characteristic.On)
+      .on("set", this.setOn.bind(this))
+      .on("get", this.getOn.bind(this));
 
     // Register handlers for the Brightness Characteristic
-    this.service.getCharacteristic(this.platform.Characteristic.Brightness)
-      .on('set', this.setBrightness.bind(this))
-      .on('get', this.getBrightness.bind(this));
+    this.service
+      .getCharacteristic(this.platform.Characteristic.Brightness)
+      .on("set", this.setBrightness.bind(this))
+      .on("get", this.getBrightness.bind(this));
 
     // Register handlers for the Color Temperature Characteristic and set the valid value range.
     // The current device value must be set before narrowing the range: the HAP default
     // (140 mirek) is outside our valid range and setProps warns on out-of-range values.
-    this.service.getCharacteristic(this.platform.Characteristic.ColorTemperature)
-      .on('set', this.setColorTemperature.bind(this))
-      .on('get', this.getColorTemperature.bind(this))
-      .updateValue(this.light.getProperty('temperature'))
+    this.service
+      .getCharacteristic(this.platform.Characteristic.ColorTemperature)
+      .on("set", this.setColorTemperature.bind(this))
+      .on("get", this.getColorTemperature.bind(this))
+      .updateValue(this.light.getProperty("temperature"))
       .setProps({
         validValueRanges: [COLOR_TEMPERATURE.MIN_MIREK, COLOR_TEMPERATURE.MAX_MIREK],
       });
 
     // Register handler for Identify functionality
-    this.accessory.on('identify', () => {
+    this.accessory.on("identify", () => {
       this.light.identify();
     });
   }
@@ -80,7 +97,8 @@ export class KeyLightsAccessory {
     value: CharacteristicValue,
     callback: CharacteristicSetCallback,
   ): void {
-    this.light.setProperty(property, value)
+    this.light
+      .setProperty(property, value)
       .then(() => {
         this.platform.log.debug(
           `Set Characteristic ${characteristicName} -> ${value} successfully on ${this.accessory.displayName}`,
@@ -101,7 +119,7 @@ export class KeyLightsAccessory {
    */
   private setOn(value: CharacteristicValue, callback: CharacteristicSetCallback): void {
     const numericValue = value ? 1 : 0;
-    this.setCharacteristicProperty('on', 'On', numericValue, callback);
+    this.setCharacteristicProperty("on", "On", numericValue, callback);
   }
 
   /**
@@ -114,29 +132,35 @@ export class KeyLightsAccessory {
   /**
    * Handler for setting the brightness
    */
-  private setBrightness(value: CharacteristicValue, callback: CharacteristicSetCallback): void {
-    this.setCharacteristicProperty('brightness', 'Brightness', value, callback);
+  private setBrightness(
+    value: CharacteristicValue,
+    callback: CharacteristicSetCallback,
+  ): void {
+    this.setCharacteristicProperty("brightness", "Brightness", value, callback);
   }
 
   /**
    * Handler for getting the brightness
    */
   private getBrightness(callback: CharacteristicGetCallback): void {
-    callback(null, this.light.getProperty('brightness'));
+    callback(null, this.light.getProperty("brightness"));
   }
 
   /**
    * Handler for setting the color temperature
    */
-  private setColorTemperature(value: CharacteristicValue, callback: CharacteristicSetCallback): void {
-    this.setCharacteristicProperty('temperature', 'Color Temperature', value, callback);
+  private setColorTemperature(
+    value: CharacteristicValue,
+    callback: CharacteristicSetCallback,
+  ): void {
+    this.setCharacteristicProperty("temperature", "Color Temperature", value, callback);
   }
 
   /**
    * Handler for getting the color temperature
    */
   private getColorTemperature(callback: CharacteristicGetCallback): void {
-    const temp = this.light.getProperty('temperature');
+    const temp = this.light.getProperty("temperature");
     callback(null, clampColorTemperature(temp));
   }
 
@@ -149,17 +173,20 @@ export class KeyLightsAccessory {
     );
 
     switch (property) {
-      case 'on':
+      case "on":
         this.service.updateCharacteristic(this.platform.Characteristic.On, value);
         break;
-      case 'temperature':
+      case "temperature":
         this.service.updateCharacteristic(
           this.platform.Characteristic.ColorTemperature,
           clampColorTemperature(value),
         );
         break;
-      case 'brightness':
-        this.service.updateCharacteristic(this.platform.Characteristic.Brightness, value);
+      case "brightness":
+        this.service.updateCharacteristic(
+          this.platform.Characteristic.Brightness,
+          value,
+        );
         break;
     }
   }

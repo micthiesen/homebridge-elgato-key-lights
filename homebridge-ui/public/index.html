@@ -1,115 +1,155 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en" data-bs-theme="dark">
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Elgato Key Lights</title>
-  <!-- Detect theme before CSS renders to avoid flash of wrong theme -->
-  <script>
-    (function () {
-      var dark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
-      document.documentElement.dataset.bsTheme = dark ? 'dark' : 'light';
-    }());
-  </script>
-  <!--
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Elgato Key Lights</title>
+    <!-- Detect theme before CSS renders to avoid flash of wrong theme -->
+    <script>
+      (function () {
+        var dark =
+          window.matchMedia &&
+          window.matchMedia("(prefers-color-scheme: dark)").matches;
+        document.documentElement.dataset.bsTheme = dark ? "dark" : "light";
+      })();
+    </script>
+    <!--
     Bootstrap is served from the plugin itself, not a CDN: the Homebridge UI wraps this
     page in a content-security policy that only allows same-origin styles and scripts, so
     a cdn.jsdelivr.net reference is refused and `bootstrap` never becomes defined. The
     files are vendored into lib/ by the `copy:ui-assets` build step.
   -->
-  <link rel="stylesheet" href="lib/bootstrap.min.css">
-  <link rel="stylesheet" href="lib/bootstrap-icons.min.css">
-  <link rel="stylesheet" href="lib/kit.css">
-  <link rel="stylesheet" href="styles.css">
-</head>
-<body>
-  <div class="container py-4">
-
-    <!-- Device List View -->
-    <div id="listView" class="mp-view active">
-      <div class="mp-header mb-2">
-        <span class="mp-header-icon text-warning"><i class="bi bi-lightbulb-fill"></i></span>
-        <div>
-          <h1 class="mp-header-title">Elgato Key Lights</h1>
-          <p class="mp-header-subtitle">Discover and manage your Key Lights on the network</p>
-        </div>
-      </div>
-
-      <div class="card border-0 shadow-sm mt-4">
-        <div class="card-header bg-transparent border-bottom d-flex justify-content-between align-items-center py-3">
-          <h5 class="mb-0">
-            <i class="bi bi-broadcast me-2"></i>Devices
-          </h5>
-          <div class="d-flex gap-2">
-            <button class="btn btn-outline-secondary btn-sm" id="addManualBtn" onclick="toggleManualAdd()">
-              <i class="bi bi-plus me-1"></i>Add manually
-            </button>
-            <button class="btn btn-primary" id="discoverBtn" onclick="discoverDevices()">
-              <i class="bi bi-search me-1"></i> Discover
-            </button>
+    <link rel="stylesheet" href="lib/bootstrap.min.css" />
+    <link rel="stylesheet" href="lib/bootstrap-icons.min.css" />
+    <link rel="stylesheet" href="lib/kit.css" />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <div class="container py-4">
+      <!-- Device List View -->
+      <div id="listView" class="mp-view active">
+        <div class="mp-header mb-2">
+          <span class="mp-header-icon text-warning"
+            ><i class="bi bi-lightbulb-fill"></i
+          ></span>
+          <div>
+            <h1 class="mp-header-title">Elgato Key Lights</h1>
+            <p class="mp-header-subtitle">
+              Discover and manage your Key Lights on the network
+            </p>
           </div>
         </div>
-        <div id="manualAddForm" class="d-none border-bottom px-3 py-3">
-          <div class="row g-2 align-items-end">
-            <div class="col">
-              <label class="form-label small mb-1">IP Address</label>
-              <input type="text" class="form-control form-control-sm" id="manualIp" placeholder="192.168.3.108"
-                onkeydown="if(event.key==='Enter') addDeviceByIp()">
-            </div>
-            <div class="col-auto">
-              <label class="form-label small mb-1">Port</label>
-              <input type="number" class="form-control form-control-sm" id="manualPort" value="9123" style="width: 90px;"
-                onkeydown="if(event.key==='Enter') addDeviceByIp()">
-            </div>
-            <div class="col-auto">
-              <button class="btn btn-primary btn-sm" id="addManualSubmit" onclick="addDeviceByIp()">
-                <i class="bi bi-plus-circle me-1"></i>Add
+
+        <div class="card border-0 shadow-sm mt-4">
+          <div
+            class="card-header bg-transparent border-bottom d-flex justify-content-between align-items-center py-3"
+          >
+            <h5 class="mb-0"><i class="bi bi-broadcast me-2"></i>Devices</h5>
+            <div class="d-flex gap-2">
+              <button
+                class="btn btn-outline-secondary btn-sm"
+                id="addManualBtn"
+                onclick="toggleManualAdd()"
+              >
+                <i class="bi bi-plus me-1"></i>Add manually
               </button>
-              <button class="btn btn-outline-secondary btn-sm ms-1" onclick="toggleManualAdd()">
-                Cancel
+              <button
+                class="btn btn-primary"
+                id="discoverBtn"
+                onclick="discoverDevices()"
+              >
+                <i class="bi bi-search me-1"></i> Discover
               </button>
             </div>
           </div>
+          <div id="manualAddForm" class="d-none border-bottom px-3 py-3">
+            <div class="row g-2 align-items-end">
+              <div class="col">
+                <label class="form-label small mb-1">IP Address</label>
+                <input
+                  type="text"
+                  class="form-control form-control-sm"
+                  id="manualIp"
+                  placeholder="192.168.3.108"
+                  onkeydown="if (event.key === 'Enter') addDeviceByIp();"
+                />
+              </div>
+              <div class="col-auto">
+                <label class="form-label small mb-1">Port</label>
+                <input
+                  type="number"
+                  class="form-control form-control-sm"
+                  id="manualPort"
+                  value="9123"
+                  style="width: 90px"
+                  onkeydown="if (event.key === 'Enter') addDeviceByIp();"
+                />
+              </div>
+              <div class="col-auto">
+                <button
+                  class="btn btn-primary btn-sm"
+                  id="addManualSubmit"
+                  onclick="addDeviceByIp()"
+                >
+                  <i class="bi bi-plus-circle me-1"></i>Add
+                </button>
+                <button
+                  class="btn btn-outline-secondary btn-sm ms-1"
+                  onclick="toggleManualAdd()"
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          </div>
+          <div class="card-body p-0">
+            <div id="deviceList"></div>
+          </div>
         </div>
-        <div class="card-body p-0">
-          <div id="deviceList"></div>
+
+        <div class="mp-footer">
+          <a
+            href="https://github.com/micthiesen/homebridge-elgato-key-lights"
+            target="_blank"
+            rel="noopener"
+          >
+            <i class="bi bi-github"></i>GitHub
+          </a>
+          <span class="mp-footer-sep">|</span>
+          <a
+            href="https://www.npmjs.com/package/@micthiesen/homebridge-elgato-key-lights"
+            target="_blank"
+            rel="noopener"
+          >
+            <i class="bi bi-box-seam"></i>npm
+          </a>
         </div>
       </div>
 
-      <div class="mp-footer">
-        <a href="https://github.com/mp-consulting/homebridge-elgato-key-lights" target="_blank" rel="noopener">
-          <i class="bi bi-github"></i>GitHub
-        </a>
-        <span class="mp-footer-sep">|</span>
-        <a href="https://www.npmjs.com/package/@mp-consulting/homebridge-elgato-key-lights" target="_blank" rel="noopener">
-          <i class="bi bi-box-seam"></i>npm
-        </a>
+      <!-- Device Settings View -->
+      <div id="settingsView" class="mp-view">
+        <div class="d-flex align-items-center gap-3 mb-4">
+          <button class="btn btn-link text-body-secondary p-0" onclick="showListView()">
+            <i class="bi bi-arrow-left fs-4"></i>
+          </button>
+          <span class="mp-header-icon text-warning"
+            ><i class="bi bi-lightbulb-fill"></i
+          ></span>
+          <div class="flex-grow-1">
+            <h1 class="mp-header-title" id="settingsDeviceName">Device Settings</h1>
+            <p class="mp-header-subtitle" id="settingsDeviceModel">Key Light</p>
+          </div>
+          <div id="settingsDeviceStatus"></div>
+        </div>
+
+        <div id="settingsContent">
+          <!-- Dynamic settings content -->
+        </div>
       </div>
     </div>
 
-    <!-- Device Settings View -->
-    <div id="settingsView" class="mp-view">
-      <div class="d-flex align-items-center gap-3 mb-4">
-        <button class="btn btn-link text-body-secondary p-0" onclick="showListView()">
-          <i class="bi bi-arrow-left fs-4"></i>
-        </button>
-        <span class="mp-header-icon text-warning"><i class="bi bi-lightbulb-fill"></i></span>
-        <div class="flex-grow-1">
-          <h1 class="mp-header-title" id="settingsDeviceName">Device Settings</h1>
-          <p class="mp-header-subtitle" id="settingsDeviceModel">Key Light</p>
-        </div>
-        <div id="settingsDeviceStatus"></div>
-      </div>
-
-      <div id="settingsContent">
-        <!-- Dynamic settings content -->
-      </div>
-    </div>
-
-  </div>
-
-  <script src="lib/bootstrap.bundle.min.js"></script>
-  <script src="lib/kit.js"></script>
-  <script src="app.js"></script>
-</body>
+    <script src="lib/bootstrap.bundle.min.js"></script>
+    <script src="lib/kit.js"></script>
+    <script src="app.js"></script>
+  </body>
 </html>

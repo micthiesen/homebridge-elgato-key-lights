@@ -1,10 +1,13 @@
 {
-  "watch": ["src", "homebridge-ui"],
+  "watch": [
+    "src",
+    "homebridge-ui/server.js",
+    "homebridge-ui/public/app.js",
+    "homebridge-ui/public/index.html",
+    "homebridge-ui/public/styles.css"
+  ],
   "ext": "ts,js,json,html,css",
-  "ignore": [],
-  "exec": "tsc && npx homebridge-config-ui-x run -U ./test/hbConfig -D",
-  "signal": "SIGTERM",
-  "env": {
-    "NODE_OPTIONS": "--trace-warnings"
-  }
+  "ignore": ["homebridge-ui/public/lib/**"],
+  "exec": "pnpm run build && pnpm run start",
+  "signal": "SIGTERM"
 }

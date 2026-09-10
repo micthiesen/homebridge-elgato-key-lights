@@ -9,7 +9,7 @@ This folder contains plugin configuration constants and settings used throughout
 Defines the plugin identity constants:
 
 - `PLATFORM_NAME` - The platform name used in Homebridge config (`ElgatoKeyLights`)
-- `PLUGIN_NAME` - The npm package name (`homebridge-keylights`)
+- `PLUGIN_NAME` - The npm package name (`@micthiesen/homebridge-elgato-key-lights`)
 
 ### constants.ts
 

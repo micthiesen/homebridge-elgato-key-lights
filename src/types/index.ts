@@ -3,13 +3,18 @@
  */
 
 /** Light property types */
-export type LightProperty = 'brightness' | 'on' | 'temperature';
+export type LightProperty = "brightness" | "on" | "temperature";
 
 /** Callback type for property change notifications */
 export type PropertyChangedCallback = (property: LightProperty, value: number) => void;
 
 /** Represents the current state of a device in the catalog */
-export type DeviceState = 'discovered' | 'initializing' | 'online' | 'offline' | 'error';
+export type DeviceState =
+  | "discovered"
+  | "initializing"
+  | "online"
+  | "offline"
+  | "error";
 
 /** Basic device connection information from mDNS discovery */
 export interface KeyLight {
@@ -71,9 +76,11 @@ export interface KeyLightInfo {
 /** Light state from the lights endpoint */
 export interface KeyLightOptions {
   numberOfLights: number;
-  lights: [{
-    on: number;
-    brightness: number;
-    temperature: number;
-  }];
+  lights: [
+    {
+      on: number;
+      brightness: number;
+      temperature: number;
+    },
+  ];
 }
