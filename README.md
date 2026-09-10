@@ -180,6 +180,10 @@ See [AGENTS.md](AGENTS.md) for architecture and contributor conventions and
 
 ## Releases
 
+For a newly created fork, open its GitHub **Actions** tab and enable workflows
+before relying on push triggers. The fork activation banner must be gone; the
+API can report Actions enabled while automatic workflows are still blocked.
+
 GitHub Actions validates pull requests and pushes to `main` on Node.js 22, 24,
 and 26.
 Successful CI on `main` publishes an npm version when the version in
