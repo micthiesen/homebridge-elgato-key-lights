@@ -1,46 +1,20 @@
 # Homebridge Elgato Key Lights
 
-A maintained personal fork of the [upstream plugin](https://github.com/mp-consulting/homebridge-elgato-key-lights).
+Personal fork of [MP Consulting's plugin](https://github.com/mp-consulting/homebridge-elgato-key-lights),
+published as [`@micthiesen/homebridge-elgato-key-lights`](https://www.npmjs.com/package/@micthiesen/homebridge-elgato-key-lights).
+Controls Elgato Key Light and Key Light Air power, brightness, and color temperature
+through Homebridge. Includes mDNS discovery and a Homebridge Config UI X interface.
 
-A [Homebridge](https://homebridge.io) plugin for controlling [Elgato Key Light](https://www.elgato.com/en/key-light) and [Key Light Air](https://www.elgato.com/en/key-light-air) devices via HomeKit.
+## Install
 
-[![npm](https://img.shields.io/npm/v/@micthiesen/homebridge-elgato-key-lights)](https://www.npmjs.com/package/@micthiesen/homebridge-elgato-key-lights)
-[![npm](https://img.shields.io/npm/dt/@micthiesen/homebridge-elgato-key-lights)](https://www.npmjs.com/package/@micthiesen/homebridge-elgato-key-lights)
-[![License](https://img.shields.io/npm/l/@micthiesen/homebridge-elgato-key-lights)](LICENSE)
-
-## Features
-
-- Automatic discovery of Elgato Key Lights on your network via mDNS/Bonjour
-- Control power, brightness, and color temperature from HomeKit
-- Real-time state synchronization with polling
-- Configure power-on behavior and default settings
-- Custom UI for device management in Homebridge Config UI X
-
-## Requirements
-
-- Node.js 22.10+, 24, or 26
-- Homebridge v1.8.0 or later
-
-## Installation
-
-### Via Homebridge Config UI X (Recommended)
-
-1. Open Homebridge Config UI X
-2. Navigate to the Plugins tab
-3. Search for `@micthiesen/homebridge-elgato-key-lights`
-4. Click Install
-
-### Via npm
+Requires Node.js 22.10+, 24, or 26 and Homebridge 1.8+.
+Search for `@micthiesen/homebridge-elgato-key-lights` in Homebridge's Plugins tab, or:
 
 ```bash
 npm install -g @micthiesen/homebridge-elgato-key-lights
 ```
 
-## Configuration
-
-### Basic Configuration
-
-Add the platform to your Homebridge `config.json`:
+Add this platform to `config.json`:
 
 ```json
 {
@@ -53,177 +27,152 @@ Add the platform to your Homebridge `config.json`:
 }
 ```
 
-That's it! The plugin will automatically discover all Elgato Key Lights on your network.
+Discovery requires reachable `_elg._tcp` mDNS advertisements. In containers or
+networks without multicast, use **Add by IP** in the plugin UI. The light must be
+reachable for that first add so its serial number can be verified. The saved
+address and identity then support startup and recovery without discovery.
 
-### Advanced Configuration
+The UI shows **Not checked** until it has HTTP evidence; missing mDNS does not mean
+a configured light is offline. Open a device to check its current status. Renaming
+it preserves unset power-on overrides; moving a settings slider creates an override.
+
+## Configuration
+
+For explicit configuration, identify each device by a valid `mac` or
+`serialNumber`. Provide `ip` or `host` to connect without mDNS; identity-only
+entries customize devices discovered later.
 
 ```json
 {
-  "platforms": [
+  "platform": "ElgatoKeyLights",
+  "name": "Elgato Key Lights",
+  "pollingRate": 5000,
+  "requestTimeout": 3000,
+  "retryMaxDelay": 60000,
+  "devices": [
     {
-      "platform": "ElgatoKeyLights",
-      "name": "Elgato Key Lights",
-      "pollingRate": 1000,
-      "powerOnBehavior": 1,
-      "powerOnBrightness": 20,
-      "powerOnTemperature": 4695,
-      "switchOnDurationMs": 100,
-      "switchOffDurationMs": 300,
-      "colorChangeDurationMs": 100,
-      "useIP": false,
-      "devices": [
-        {
-          "mac": "AA:BB:CC:DD:EE:FF",
-          "displayName": "Desk Light"
-        },
-        {
-          "mac": "11:22:33:44:55:66",
-          "displayName": "Studio Key Light"
-        }
-      ]
+      "serialNumber": "YOUR-LIGHT-SERIAL",
+      "ip": "192.0.2.10",
+      "port": 9123,
+      "displayName": "Desk Light",
+      "enabled": true
     }
   ]
 }
 ```
 
-### Configuration Options
+`192.0.2.10` is an example address. Replace it and the serial with your device's values.
 
-| Option | Type | Default | Description |
-|--------|------|---------|-------------|
-| `name` | string | `"Elgato Key Lights"` | Plugin name displayed in Homebridge logs |
-| `pollingRate` | integer | `1000` | How often to poll light status (milliseconds) |
-| `powerOnBehavior` | integer | `1` | `1` = Restore last settings, `2` = Restore defaults |
-| `powerOnBrightness` | integer | `20` | Default brightness when powered on (0-100%) |
-| `powerOnTemperature` | integer | `4695` | Default color temperature (2900-7000K) |
-| `switchOnDurationMs` | integer | `100` | Fade-in duration when turning on (ms) |
-| `switchOffDurationMs` | integer | `300` | Fade-out duration when turning off (ms) |
-| `colorChangeDurationMs` | integer | `100` | Transition duration for color changes (ms) |
-| `useIP` | boolean | `false` | Use IP address instead of hostname for connections |
-| `devices` | array | `[]` | Per-device configuration (see below) |
+| Option | Default | Meaning |
+| --- | --- | --- |
+| `pollingRate` | `5000` | Delay after successful polling, 500–60000 ms |
+| `requestTimeout` | `3000` | Deadline per HTTP call, 100–10000 ms |
+| `retryMaxDelay` | `60000` | Maximum recovery delay, 1000–300000 ms |
+| `useIP` | `false` | Prefer discovered IP addresses to hostnames |
+| `devices` | `[]` | Per-device identity, address, display name, enablement, and power-on settings |
+| `powerOnBehavior` | Keep device setting | `1`: restore last state; `2`: use defaults |
+| `powerOnBrightness` | Keep device setting | Power-on brightness, 0–100% |
+| `powerOnTemperature` | Keep device setting | Power-on temperature, 2900–7000 Kelvin |
+| `switchOnDurationMs` | Keep device setting | Fade-in duration, 0–60000 ms |
+| `switchOffDurationMs` | Keep device setting | Fade-out duration, 0–60000 ms |
+| `colorChangeDurationMs` | Keep device setting | Color transition duration, 0–60000 ms |
 
-### Per-Device Configuration
+Per-device power-on settings override global settings. A per-device
+`powerOnBehavior` of `0` inherits the global setting. Omitted settings retain the
+values confirmed by the light. Kelvin configuration converts to the device's
+mirek protocol at the settings boundary.
 
-The `devices` array allows you to customize individual lights:
+Existing HomeKit accessory UUIDs continue to derive from the device serial number.
+Recovery does not require removing and re-pairing an accessory.
 
-| Option | Type | Description |
-|--------|------|-------------|
-| `mac` | string | MAC address of the device |
-| `displayName` | string | Custom display name for HomeKit |
+## Recovery
 
-You can find the MAC address in Homebridge logs when a device is discovered.
+Each light has an independent Effect supervisor. Failed startup and later
+connection failures retry indefinitely. Delays grow exponentially from roughly
+one second, with jitter between 80% and 100% of the capped delay. The default
+maximum wait is 60 seconds **between attempts**, plus the time spent on requests.
+Each request has its own deadline; initialization can make several calls.
 
-## Supported Devices
+Discovery updates address candidates and wakes recovery. The plugin tries
+alternate known endpoints instead of permanently pinning an old IP. HTTP calls
+for each light are serialized so polling and commands cannot race. Unreachable
+lights report communication failure to HomeKit, while last confirmed state stays
+available internally. Shutdown interrupts supervised work and releases discovery.
 
-- Elgato Key Light
-- Elgato Key Light Air
-- Elgato Key Light Mini
-- Elgato Ring Light
-
-Any device advertising the `_elg._tcp` mDNS service should work.
-
-## Troubleshooting
-
-### Lights not discovered
-
-1. Ensure your lights are on the same network as your Homebridge server
-2. Check that mDNS/Bonjour traffic is not blocked by your router or firewall
-3. Try enabling the `useIP` option if you have DNS resolution issues
-
-### Connection issues
-
-If you experience intermittent connection problems:
-
-1. Try setting `useIP: true` in your configuration
-2. Assign static IP addresses to your lights via your router's DHCP settings
-3. Increase `pollingRate` to poll less frequently if your network is congested
-
-### Lights not responding
-
-1. Restart the Elgato Control Center app on your computer
-2. Power cycle your Key Light
-3. Check the Homebridge logs for error messages
+If a light stays unavailable, inspect the Homebridge log, confirm its address and
+port (normally `9123`), and check network reachability. DHCP reservations are useful
+when multicast is blocked: the plugin cannot discover an entirely new address
+without discovery or an updated configuration. A plugin cannot repair a light
+that is disconnected from Wi-Fi or not serving its HTTP API.
 
 ## Development
 
-Use the pnpm version pinned in `package.json` and a supported Node.js version.
-The plugin builds with TypeScript 7; Oxlint and Oxfmt enforce the shared
-TypeScript conventions used in `../omni-notify`.
+Use pinned pnpm, TypeScript 7, Oxlint, Oxfmt, Vitest, and the pinned Effect v4
+release. Run the complete gate:
 
 ```bash
-git clone https://github.com/micthiesen/homebridge-elgato-key-lights.git
-cd homebridge-elgato-key-lights
 pnpm install
 pnpm check:write
 pnpm check
 pnpm typecheck
 pnpm test
 pnpm build
+pnpm test:runtime
 ```
 
-`pnpm check:write` applies lint fixes and formatting. `pnpm check` verifies lint
-and formatting without modifying files. `pnpm test:coverage` generates coverage.
-For the first local run, create the development configuration:
+`pnpm test:coverage` collects coverage. Tests use controlled HTTP servers and mocked
+Homebridge/discovery boundaries. These checks do not prove physical light or Wi-Fi
+recovery; report real hardware checks separately.
+
+For isolated Homebridge development:
 
 ```bash
 cp test/hbConfig/config.sample.json test/hbConfig/config.json
+pnpm dev
 ```
 
-Edit that local file as needed; it is ignored by Git.
-`pnpm dev` rebuilds on changes and runs Homebridge with this checkout as its
-plugin path and `test/hbConfig/` as its local storage directory. It does not use
-your normal Homebridge configuration or require a global npm link. It does not
-launch Homebridge Config UI X. Local discovery can still find real lights on your
-network.
+Edit the ignored local config first. This uses `test/hbConfig/`, does not globally
+link the checkout, and does not launch Config UI X. Discovery can still find and
+control actual lights on the local network.
 
-See [AGENTS.md](AGENTS.md) for architecture and contributor conventions and
-[test/README.md](test/README.md) for test isolation rules.
+| Path | Responsibility |
+| --- | --- |
+| `src/platform/` | Homebridge lifecycle, discovery, identity reconciliation, scoped device supervisors |
+| `src/devices/` | Device state, retries, endpoint candidates, serialized commands |
+| `src/protocol/` | Validated, bounded HTTP API using fetch and Effect |
+| `src/accessories/` | HomeKit handlers and availability/state updates |
+| `src/config/` | Schema validation, defaults, settings conversion |
+| `src/ui/` | Typed Effect custom UI server requests and scoped discovery |
+| `homebridge-ui/` | Server loader and browser DOM adapter |
+| `test/` | Unit and integration regression tests |
+
+See [AGENTS.md](AGENTS.md) for project conventions and [test/README.md](test/README.md)
+for verification rules.
 
 ## Releases
 
-For a newly created fork, open its GitHub **Actions** tab and enable workflows
-before relying on push triggers. The fork activation banner must be gone; the
-API can report Actions enabled while automatic workflows are still blocked.
+GitHub Actions validates pull requests and pushes to `main` on Node.js 22, 24, and
+26. A successful `main` run publishes when `package.json` names an unpublished
+version. Bump the version deliberately, commit, and push. Verify the **push-triggered**
+run and npm version; rerunning an already published version correctly skips it.
 
-GitHub Actions validates pull requests and pushes to `main` on Node.js 22, 24,
-and 26.
-Successful CI on `main` publishes an npm version when the version in
-`package.json` has not already been published. Bump that version deliberately,
-commit, and push to release. Repeated pushes with the same published version skip
-publishing. The package is public under the `@micthiesen` scope.
+This repository uses npm trusted publishing (OIDC), without an `NPM_TOKEN` secret.
+For a new fork, enable workflows in GitHub's Actions tab, bootstrap the npm package
+once from an authenticated account, and add a GitHub Actions trusted publisher in
+npm package settings:
 
-The repository contains the [publishing workflow](.github/workflows/publish.yml),
-but npm account setup must be completed before automatic publishing can succeed:
+| Field | Value for this repository |
+| --- | --- |
+| Organization/user | `micthiesen` |
+| Repository | `homebridge-elgato-key-lights` |
+| Workflow filename | `publish.yml` |
+| Environment | Leave blank |
+| Allowed action | Direct `npm publish` |
 
-1. If the package does not yet exist, publish it once from an authenticated npm
-   account with access to the `@micthiesen` scope: run the validation commands
-   above, then `npm publish --access public`.
-2. In the npm package settings, add a GitHub Actions trusted publisher with
-   organization/user `micthiesen`, repository `homebridge-elgato-key-lights`, and
-   workflow filename `publish.yml`. Leave the environment name blank because this
-   workflow does not use a GitHub environment. Enable direct `npm publish` for
-   this publisher; stage-only publishing is not used here.
-3. Re-run the publishing workflow after setup. A bootstrapped version is skipped;
-   the next version bump exercises trusted publishing.
+The [workflow](.github/workflows/publish.yml) requests the OIDC identity and publishes
+with provenance. Never commit npm credentials.
 
-The workflow requests an OIDC identity and uses `npm publish` directly. It does
-not require an `NPM_TOKEN` repository secret. Never commit npm credentials.
+## License and credits
 
-## Project Structure
-
-```
-src/
-├── index.ts                         # Entry point
-├── types/                           # TypeScript interfaces
-├── config/                          # Constants and settings
-├── platform/                        # Platform and device catalog
-├── accessories/                     # HomeKit accessory handlers
-└── devices/                         # Device API clients
-```
-
-## License
-
-[MIT](LICENSE)
-
-## Credits
-
-Forked from [MP Consulting’s plugin](https://github.com/mp-consulting/homebridge-elgato-key-lights), originally forked from [homebridge-keylights](https://github.com/derjayjay/homebridge-keylights) by derjayjay.
+[MIT](LICENSE). Forked from MP Consulting's plugin, originally derived from
+[homebridge-keylights](https://github.com/derjayjay/homebridge-keylights) by derjayjay.

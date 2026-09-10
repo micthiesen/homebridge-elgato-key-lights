@@ -1,5 +1,20 @@
 # Changelog
 
+## [1.1.0] - 2026-09-10
+
+### Changed
+
+- Refactored device supervision, discovery, HTTP, and the custom UI server around Effect v4, with scoped cancellation and validated protocol/configuration boundaries.
+- Retry unavailable lights indefinitely with capped backoff, including startup before HTTP readiness and reconnects without a new discovery event.
+- Serialize polling and commands, verify device identity, preserve cached HomeKit UUIDs, and report communication failures until recovery.
+
+### Fixed
+
+- Reject malformed responses, bound HTTP requests and response sizes, and interrupt pending work during shutdown.
+- Prevent stale addresses and responses from corrupting device state or merging unrelated lights.
+- Support manual IP configuration using verified serial numbers and retain legacy blank optional addresses.
+- Preserve per-device settings and unrelated platform config in the UI, escape device-provided HTML, and report failed saves accurately.
+
 ## [1.0.28] - 2026-09-10
 
 ### Changed

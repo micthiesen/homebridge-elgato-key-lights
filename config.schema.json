@@ -17,8 +17,10 @@
         "title": "Polling Rate (in milliseconds)",
         "type": "integer",
         "required": false,
-        "placeholder": 1000,
-        "description": "The polling rate for light status in milliseconds"
+        "placeholder": 5000,
+        "description": "Delay between successful status refreshes in milliseconds (default 5000). Requests do not overlap.",
+        "minimum": 500,
+        "maximum": 60000
       },
       "powerOnBehavior": {
         "title": "Power On Behaviour",
@@ -26,8 +28,14 @@
         "required": false,
         "placeholder": 1,
         "oneOf": [
-          { "title": "Restore last settings used", "enum": [1] },
-          { "title": "Restore default settings", "enum": [2] }
+          {
+            "title": "Restore last settings used",
+            "enum": [1]
+          },
+          {
+            "title": "Restore default settings",
+            "enum": [2]
+          }
         ],
         "description": "The behaviour when powering the lights on"
       },
@@ -54,28 +62,33 @@
         "title": "Switch On Duration (in milliseconds)",
         "type": "integer",
         "required": false,
-        "default": 100,
-        "description": "The duration of the switch on sequence"
+        "description": "The duration of the switch on sequence",
+        "minimum": 0,
+        "maximum": 60000
       },
       "switchOffDurationMs": {
         "title": "Switch Off Duration (in milliseconds)",
         "type": "integer",
         "required": false,
         "placeholder": 300,
-        "description": "The duration of the switch off sequence"
+        "description": "The duration of the switch off sequence",
+        "minimum": 0,
+        "maximum": 60000
       },
       "colorChangeDurationMs": {
         "title": "Colour Change Duration (in milliseconds)",
         "type": "integer",
         "required": false,
         "placeholder": 100,
-        "description": "The duration of the colour change sequence"
+        "description": "The duration of the colour change sequence",
+        "minimum": 0,
+        "maximum": 60000
       },
       "useIP": {
         "title": "Use IP address instead of hostname",
         "type": "boolean",
         "required": false,
-        "description": "By default, the hostname of the light is used for the connection. If this causes issues in your environment, you can enable this option to use the IP address instead."
+        "description": "Prefer advertised IP addresses over the hostname. Both remain connection candidates for recovery."
       },
       "devices": {
         "title": "Devices",
@@ -86,12 +99,13 @@
             "name": {
               "title": "Name",
               "type": "string",
-              "required": true
+              "required": false
             },
             "mac": {
               "title": "MAC Address",
               "type": "string",
-              "required": true
+              "required": false,
+              "description": "MAC address or serial number is required. Discovery supplies the MAC; manual add verifies the serial."
             },
             "host": {
               "title": "Hostname",
@@ -104,7 +118,9 @@
             "port": {
               "title": "Port",
               "type": "integer",
-              "default": 9123
+              "default": 9123,
+              "minimum": 1,
+              "maximum": 65535
             },
             "model": {
               "title": "Model",
@@ -119,9 +135,18 @@
               "title": "Power On Behaviour",
               "type": "number",
               "oneOf": [
-                { "title": "Use global setting", "enum": [0] },
-                { "title": "Restore last settings used", "enum": [1] },
-                { "title": "Restore default settings", "enum": [2] }
+                {
+                  "title": "Use global setting",
+                  "enum": [0]
+                },
+                {
+                  "title": "Restore last settings used",
+                  "enum": [1]
+                },
+                {
+                  "title": "Restore default settings",
+                  "enum": [2]
+                }
               ],
               "default": 0
             },
@@ -141,9 +166,51 @@
               "title": "Enabled",
               "type": "boolean",
               "default": true
+            },
+            "serialNumber": {
+              "title": "Serial number",
+              "type": "string",
+              "minLength": 1,
+              "description": "Stable device serial. Manual add fills this from the light. Required when no MAC is configured."
             }
-          }
+          },
+          "anyOf": [
+            {
+              "required": ["mac"],
+              "properties": {
+                "mac": {
+                  "type": "string",
+                  "minLength": 1
+                }
+              }
+            },
+            {
+              "required": ["serialNumber"],
+              "properties": {
+                "serialNumber": {
+                  "type": "string",
+                  "minLength": 1
+                }
+              }
+            }
+          ]
         }
+      },
+      "requestTimeout": {
+        "title": "Request timeout (milliseconds)",
+        "type": "integer",
+        "minimum": 100,
+        "maximum": 10000,
+        "placeholder": 3000,
+        "description": "Deadline for each HTTP request (default 3000)."
+      },
+      "retryMaxDelay": {
+        "title": "Maximum retry delay (milliseconds)",
+        "type": "integer",
+        "minimum": 1000,
+        "maximum": 300000,
+        "placeholder": 60000,
+        "description": "Maximum delay between failed recovery attempts (default 60000). Recovery continues indefinitely."
       }
     }
   },
@@ -169,7 +236,7 @@
       "title": "Advanced",
       "expandable": true,
       "expanded": false,
-      "items": ["useIP"]
+      "items": ["requestTimeout", "retryMaxDelay", "useIP"]
     }
   ]
 }

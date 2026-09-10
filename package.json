@@ -1,7 +1,7 @@
 {
   "displayName": "Elgato Key Lights",
   "name": "@micthiesen/homebridge-elgato-key-lights",
-  "version": "1.0.28",
+  "version": "1.1.0",
   "description": "A Homebridge plugin for Elgato Key Light and Key Light Air",
   "author": "Michael Thiesen",
   "license": "MIT",
@@ -23,7 +23,7 @@
     "watch": "pnpm run dev",
     "copy:ui-assets": "node scripts/copy-ui-assets.mjs",
     "build": "pnpm run copy:ui-assets && node scripts/clean.mjs && tsc",
-    "prepublishOnly": "pnpm run check && pnpm run typecheck && pnpm run test && pnpm run build",
+    "prepublishOnly": "pnpm run check && pnpm run typecheck && pnpm run test && pnpm run build && pnpm run test:runtime",
     "test": "vitest run",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
@@ -35,7 +35,8 @@
     "typecheck": "tsc --noEmit -p tsconfig.check.json",
     "test:only": "vitest run",
     "dev": "pnpm run build && nodemon",
-    "start": "homebridge --plugin-path . -U ./test/hbConfig -D"
+    "start": "homebridge --plugin-path . -U ./test/hbConfig -D",
+    "test:runtime": "node scripts/smoke-runtime.mjs"
   },
   "keywords": [
     "homebridge-plugin",
@@ -48,22 +49,23 @@
   ],
   "dependencies": {
     "@homebridge/plugin-ui-utils": "^2.2.6",
-    "axios": "^1.20.0",
-    "bonjour-service": "^1.4.4"
+    "bonjour-service": "^1.4.4",
+    "effect": "4.0.0-rc.112"
   },
   "devDependencies": {
+    "@effect/vitest": "4.0.0-rc.112",
     "@mp-consulting/homebridge-ui-kit": "^1.0.1",
     "@types/node": "^26.5.0",
-    "@vitest/coverage-v8": "^5.0.0",
-    "@vitest/ui": "^5.0.0",
+    "@vitest/coverage-v8": "^4.1.11",
+    "@vitest/ui": "^4.1.11",
     "bootstrap": "^5.3.8",
     "bootstrap-icons": "^1.13.1",
     "homebridge": "^2.4.0",
     "nodemon": "^3.1.14",
-    "typescript": "^7.0.2",
-    "vitest": "^5.0.0",
+    "oxfmt": "0.65.0",
     "oxlint": "1.80.0",
-    "oxfmt": "0.65.0"
+    "typescript": "^7.0.2",
+    "vitest": "^4.1.11"
   },
   "files": [
     "dist",

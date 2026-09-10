@@ -1,6 +1,6 @@
 // Constants
 const ELGATO_DEFAULT_PORT = 9123;
-const BRIGHTNESS_MIN = 3;
+const BRIGHTNESS_MIN = 0;
 const BRIGHTNESS_MAX = 100;
 const BRIGHTNESS_DEFAULT = 50;
 const TEMPERATURE_MIN = 2900;
@@ -20,6 +20,40 @@ let discoveredDevices = [];
 let configuredDevices = [];
 let currentDeviceIndex = -1;
 let initialized = false;
+let saving = false;
+let viewGeneration = 0;
+let discoveryGeneration = 0;
+const editedSettings = new Set();
+
+function escapeHtml(value) {
+  return String(value ?? "").replace(
+    /[&<>"']/g,
+    (character) =>
+      ({
+        "&": "&amp;",
+        "<": "&lt;",
+        ">": "&gt;",
+        '"': "&quot;",
+        "'": "&#39;",
+      })[character],
+  );
+}
+
+function statusBadge(online) {
+  if (online === true) return MpKit.StatusBadge.online();
+  if (online === false) return MpKit.StatusBadge.offline();
+  return '<span class="badge bg-secondary">Not checked</span>';
+}
+
+function sameDevice(a, b) {
+  const mac = (value) =>
+    String(value || "")
+      .replace(/[:.-]/g, "")
+      .toLowerCase();
+  if (a.serialNumber && b.serialNumber) return a.serialNumber === b.serialNumber;
+  if (a.mac && b.mac) return mac(a.mac) === mac(b.mac);
+  return false;
+}
 
 // Initialize when homebridge is ready
 if (typeof homebridge !== "undefined") {
@@ -67,14 +101,16 @@ async function onHomebridgeReady() {
 
 async function loadConfiguredDevices() {
   try {
-    configuredDevices = (await homebridge.request("/config/devices")) || [];
+    const configs = await homebridge.getPluginConfig();
+    configuredDevices =
+      configs?.find((config) => config.platform === "ElgatoKeyLights")?.devices || [];
 
     if (configuredDevices.length > 0) {
       // Display configured devices immediately with "Checking..." status
       discoveredDevices = configuredDevices.map((d) => ({
         ...d,
         addresses: d.ip ? [d.ip] : [],
-        online: null, // null = checking status
+        online: null, // No HTTP evidence yet
       }));
       renderDevices(discoveredDevices);
     } else {
@@ -88,6 +124,7 @@ async function loadConfiguredDevices() {
 
 // oxlint-disable-next-line no-unused-vars -- called from HTML onclick
 function showListView() {
+  viewGeneration++;
   MpKit.View.show("listView");
   currentDeviceIndex = -1;
   renderDevices(discoveredDevices);
@@ -144,11 +181,12 @@ function toggleManualAdd() {
 // oxlint-disable-next-line no-unused-vars -- called from HTML onclick
 async function addDeviceByIp() {
   const ip = document.getElementById("manualIp").value.trim();
-  const port =
-    parseInt(document.getElementById("manualPort").value) || ELGATO_DEFAULT_PORT;
+  const port = Number(
+    document.getElementById("manualPort").value || ELGATO_DEFAULT_PORT,
+  );
 
-  if (!ip) {
-    showToast("Please enter an IP address", "danger");
+  if (!ip || !Number.isInteger(port) || port < 1 || port > 65535) {
+    showToast("Enter a device address and a port from 1 to 65535", "danger");
     return;
   }
 
@@ -168,16 +206,20 @@ async function addDeviceByIp() {
   try {
     const result = await homebridge.request("/device/info", { host: ip, port });
 
-    const deviceName = result.success
-      ? result.data?.displayName || result.data?.productName || `Key Light ${ip}`
-      : `Key Light ${ip}`;
-    const model = result.success
-      ? result.data?.productName || "Key Light"
-      : "Key Light";
+    if (!result.success || !result.data?.serialNumber) {
+      throw new Error(
+        result.error ||
+          "Device identity unavailable. Reconnect the light and try again.",
+      );
+    }
+    const deviceName =
+      result.data.displayName || result.data.productName || `Key Light ${ip}`;
+    const model = result.data.productName || "Key Light";
 
     const newDevice = {
       name: deviceName,
-      mac: "",
+      mac: result.data.macAddress,
+      serialNumber: result.data.serialNumber,
       host: ip,
       ip,
       port,
@@ -189,22 +231,21 @@ async function addDeviceByIp() {
       addresses: [ip],
     };
 
-    discoveredDevices.push(newDevice);
-    await saveDevicesToConfig(discoveredDevices);
+    if (discoveredDevices.some((device) => sameDevice(device, newDevice))) {
+      throw new Error("This device is already configured");
+    }
+    const nextDevices = [...discoveredDevices, newDevice];
+    await saveDevicesToConfig(nextDevices);
+    discoveredDevices = nextDevices;
     renderDevices(discoveredDevices);
 
     document.getElementById("manualAddForm").classList.add("d-none");
     document.getElementById("manualIp").value = "";
     document.getElementById("manualPort").value = String(ELGATO_DEFAULT_PORT);
 
-    showToast(
-      result.success
-        ? `Added ${deviceName}`
-        : `Added device at ${ip} (offline — check IP/port)`,
-      result.success ? "success" : "info",
-    );
+    showToast(`Added ${deviceName}`, "success");
   } catch (error) {
-    showToast(`Failed to add device: ${error.message}`, "danger");
+    showToast(`Failed to add device: ${escapeHtml(error.message)}`, "danger");
   } finally {
     btn.disabled = false;
     btn.innerHTML = '<i class="bi bi-plus-circle me-1"></i>Add';
@@ -212,6 +253,7 @@ async function addDeviceByIp() {
 }
 
 async function discoverDevices() {
+  const generation = ++discoveryGeneration;
   const btn = document.getElementById("discoverBtn");
 
   btn.disabled = true;
@@ -220,6 +262,7 @@ async function discoverDevices() {
 
   try {
     const discovered = await homebridge.request("/discover");
+    if (generation !== discoveryGeneration) return;
 
     // Merge: update existing configured devices, add new ones
     const mergedDevices = mergeDevices(configuredDevices, discovered);
@@ -230,14 +273,14 @@ async function discoverDevices() {
     // automatically — auto-saving here would silently re-add devices the user
     // just removed. They are persisted on the next explicit save action.
     const newDevices = discovered.filter(
-      (d) => !configuredDevices.some((c) => c.mac === d.mac),
+      (d) => !configuredDevices.some((c) => sameDevice(c, d)),
     );
 
     if (newDevices.length > 0) {
       showToast(`Found ${newDevices.length} new device(s)`, "success");
     }
   } catch (error) {
-    discoveredDevices = discoveredDevices.map((d) => ({ ...d, online: false }));
+    discoveredDevices = discoveredDevices.map((d) => ({ ...d, online: null }));
     renderDevices(discoveredDevices);
     showToast("Discovery failed: " + error.message, "danger");
   } finally {
@@ -251,7 +294,7 @@ function mergeDevices(configured, discovered) {
 
   // First, update all configured devices with discovery info
   for (const config of configured) {
-    const found = discovered.find((d) => d.mac === config.mac);
+    const found = discovered.find((d) => sameDevice(d, config));
     if (found) {
       merged.push({
         ...config,
@@ -261,24 +304,24 @@ function mergeDevices(configured, discovered) {
         powerOnBrightness: config.powerOnBrightness,
         powerOnTemperature: config.powerOnTemperature,
         enabled: config.enabled,
-        online: true,
+        online: found.online === true ? true : null,
       });
     } else {
       merged.push({
         ...config,
         addresses: config.ip ? [config.ip] : [],
-        online: false,
+        online: null,
       });
     }
   }
 
   // Then add any newly discovered devices not in config
   for (const device of discovered) {
-    if (!configured.some((c) => c.mac === device.mac)) {
+    if (!configured.some((c) => sameDevice(c, device))) {
       merged.push({
         ...device,
         enabled: true,
-        online: true,
+        online: device.online === true ? true : null,
       });
     }
   }
@@ -287,42 +330,69 @@ function mergeDevices(configured, discovered) {
 }
 
 async function saveDevicesToConfig(devices) {
-  const devicesToSave = devices.map((d) => ({
-    name: d.name,
-    mac: d.mac,
-    host: d.host,
-    ip: d.addresses?.[0] || d.ip || "",
-    port: d.port || ELGATO_DEFAULT_PORT,
-    model: d.model || "Key Light",
-    displayName: d.displayName || "",
-    powerOnBehavior: d.powerOnBehavior || POWER_ON_BEHAVIOR.USE_GLOBAL,
-    powerOnBrightness: d.powerOnBrightness,
-    powerOnTemperature: d.powerOnTemperature,
-    enabled: d.enabled !== false,
-  }));
+  if (saving)
+    throw new Error(
+      "A save is already in progress. Please try again when it finishes.",
+    );
+  saving = true;
+  discoveryGeneration++;
+  try {
+    const devicesToSave = devices.map((d) => ({
+      name: d.name,
+      mac: d.mac || undefined,
+      serialNumber: d.serialNumber,
+      host: d.host,
+      ip: d.addresses?.[0] || d.ip || undefined,
+      port: d.port || ELGATO_DEFAULT_PORT,
+      model: d.model || "Key Light",
+      displayName: d.displayName || "",
+      powerOnBehavior: d.powerOnBehavior,
+      powerOnBrightness: d.powerOnBrightness,
+      powerOnTemperature: d.powerOnTemperature,
+      enabled: d.enabled !== false,
+    }));
 
-  let pluginConfig = await homebridge.getPluginConfig();
+    let pluginConfig = await homebridge.getPluginConfig();
 
-  if (!pluginConfig || pluginConfig.length === 0) {
-    // First-time setup: platform block not yet in config.json — create it
-    pluginConfig = [{ platform: "ElgatoKeyLights", name: "Elgato Key Lights" }];
+    if (!pluginConfig || pluginConfig.length === 0) {
+      // First-time setup: platform block not yet in config.json — create it
+      pluginConfig = [{ platform: "ElgatoKeyLights", name: "Elgato Key Lights" }];
+    }
+
+    let config = pluginConfig.find((entry) => entry.platform === "ElgatoKeyLights");
+    if (!config) {
+      config = { platform: "ElgatoKeyLights", name: "Elgato Key Lights" };
+      pluginConfig.push(config);
+    }
+    config.devices = devicesToSave;
+    await homebridge.updatePluginConfig(pluginConfig);
+    await persistPluginConfig();
+    configuredDevices = devicesToSave;
+  } finally {
+    saving = false;
   }
-
-  pluginConfig[0].devices = devicesToSave;
-  await homebridge.updatePluginConfig(pluginConfig);
-  await persistPluginConfig();
-  configuredDevices = devicesToSave;
 }
 
 async function persistPluginConfig() {
-  // homebridge-config-ui-x 5.24.0 relays savePluginConfig's result through
-  // postMessage without awaiting it, which throws an uncaught DataCloneError in
-  // the parent window: the save still executes, but the response never reaches
-  // this frame. Race a timeout so the UI does not hang forever on the await.
-  await Promise.race([
-    homebridge.savePluginConfig(),
-    new Promise((resolve) => setTimeout(resolve, 2000)),
-  ]);
+  let timer;
+  try {
+    await Promise.race([
+      homebridge.savePluginConfig(),
+      new Promise((_, reject) => {
+        timer = setTimeout(
+          () =>
+            reject(
+              new Error(
+                "Save was not confirmed. Reload configuration before trying again.",
+              ),
+            ),
+          10000,
+        );
+      }),
+    ]);
+  } finally {
+    clearTimeout(timer);
+  }
 }
 
 function renderDevices(devices) {
@@ -342,12 +412,7 @@ function renderDevices(devices) {
       ${devices
         .map((device, index) => {
           const isOffline = device.online === false;
-          const isChecking = device.online === null;
-          const statusBadge = isChecking
-            ? MpKit.StatusBadge.checking()
-            : isOffline
-              ? MpKit.StatusBadge.offline()
-              : MpKit.StatusBadge.online();
+          const badge = statusBadge(device.online);
           return `
         <div class="list-group-item mp-device-card d-flex justify-content-between align-items-center py-3 ${isOffline ? "opacity-50" : ""}" onclick="showSettingsView(${index})">
           <div class="d-flex align-items-center">
@@ -356,13 +421,13 @@ function renderDevices(devices) {
             </div>
             <div>
               <div class="fw-semibold">
-                ${device.displayName || device.name}
+                ${escapeHtml(device.displayName || device.name)}
                 ${device.enabled === false ? `<span class="ms-2">${MpKit.StatusBadge.disabled()}</span>` : ""}
-                <span class="ms-2">${statusBadge}</span>
+                <span class="ms-2">${badge}</span>
               </div>
               <div class="small text-body-secondary">
-                <span class="me-2"><i class="bi bi-box me-1"></i>${device.model || "Key Light"}</span>
-                <span><i class="bi bi-ethernet me-1"></i>${device.addresses?.[0] || device.ip || device.host || "Unknown"}</span>
+                <span class="me-2"><i class="bi bi-box me-1"></i>${escapeHtml(device.model || "Key Light")}</span>
+                <span><i class="bi bi-ethernet me-1"></i>${escapeHtml(device.addresses?.[0] || device.ip || device.host || "Unknown")}</span>
               </div>
             </div>
           </div>
@@ -382,23 +447,25 @@ function renderDevices(devices) {
 }
 
 async function loadDeviceSettings(index) {
+  const generation = ++viewGeneration;
   const device = discoveredDevices[index];
+  if (!device) return;
   const settingsContent = document.getElementById("settingsContent");
 
   document.getElementById("settingsDeviceName").textContent =
     device.displayName || device.name;
   document.getElementById("settingsDeviceModel").textContent =
     device.model || "Key Light";
-  document.getElementById("settingsDeviceStatus").innerHTML = device.online
-    ? MpKit.StatusBadge.online()
-    : MpKit.StatusBadge.offline();
+  document.getElementById("settingsDeviceStatus").innerHTML = statusBadge(
+    device.online,
+  );
 
   settingsContent.innerHTML = MpKit.Loading.render("Loading device information...");
 
   let deviceInfo = null;
   let currentState = null;
 
-  if (device.online) {
+  if (device) {
     try {
       const host = device.addresses?.[0] || device.ip || device.host;
       const port = device.port || ELGATO_DEFAULT_PORT;
@@ -411,16 +478,25 @@ async function loadDeviceSettings(index) {
       }
       if (settingsResult.success) {
         currentState = settingsResult.data?.lights?.lights?.[0];
+        device.online = true;
+      } else {
+        device.online = false;
       }
     } catch (e) {
+      device.online = false;
       console.error("[KeyLights] Failed to get device info:", e);
     }
   }
 
+  if (generation !== viewGeneration || currentDeviceIndex !== index) return;
+  document.getElementById("settingsDeviceStatus").innerHTML = statusBadge(
+    device.online,
+  );
   renderDeviceSettings(device, deviceInfo, currentState);
 }
 
 function renderDeviceSettings(device, deviceInfo, currentState) {
+  editedSettings.clear();
   const settingsContent = document.getElementById("settingsContent");
   const host = device.addresses?.[0] || device.ip || device.host;
   const kelvinTemp = currentState?.temperature
@@ -479,10 +555,10 @@ function renderDeviceSettings(device, deviceInfo, currentState) {
                     <span class="text-body-secondary" style="width: 90px;">Brightness</span>
                     <div class="flex-grow-1">
                       <div class="progress" style="height: 14px; background: linear-gradient(to right, #333 0%, #fff 100%); border-radius: 7px;">
-                        <div class="progress-bar" role="progressbar" style="width: ${currentState.brightness || 0}%; background: transparent; border-right: 3px solid var(--mp-primary);"></div>
+                        <div class="progress-bar" role="progressbar" style="width: ${escapeHtml(currentState.brightness || 0)}%; background: transparent; border-right: 3px solid var(--mp-primary);"></div>
                       </div>
                     </div>
-                    <span class="fw-bold" style="min-width: 60px; text-align: right;">${currentState.brightness || 0}%</span>
+                    <span class="fw-bold" style="min-width: 60px; text-align: right;">${escapeHtml(currentState.brightness || 0)}%</span>
                   </div>
                 </div>
               </div>
@@ -513,7 +589,7 @@ function renderDeviceSettings(device, deviceInfo, currentState) {
         `
             : `
           <div class="alert alert-secondary">
-            <i class="bi bi-wifi-off me-2"></i>Device is offline. Status unavailable.
+            <i class="bi bi-wifi-off me-2"></i>Device status unavailable.
           </div>
         `
         }
@@ -536,7 +612,7 @@ function renderDeviceSettings(device, deviceInfo, currentState) {
 
                 <div class="mb-4">
                   <label class="form-label" for="displayName">Display Name</label>
-                  <input type="text" class="form-control" id="displayName" value="${device.displayName || ""}" placeholder="${device.name}">
+                  <input type="text" class="form-control" id="displayName" value="${escapeHtml(device.displayName || "")}" placeholder="${escapeHtml(device.name)}">
                   <div class="form-text">Custom name to show in HomeKit (leave empty to use device name)</div>
                 </div>
 
@@ -553,7 +629,7 @@ function renderDeviceSettings(device, deviceInfo, currentState) {
               <!-- Right column: Default power-on values -->
               <div class="col-md-6">
                 <h6 class="mp-label mb-1"><i class="bi bi-sliders2 me-2"></i>Default Power On Settings</h6>
-                <p class="small text-body-secondary mb-4">Used when "Use default settings below" is selected.</p>
+                <p class="small text-body-secondary mb-4">Used when "Use default settings below" is selected. Unset values inherit global or device settings; move a slider to override.</p>
 
                 <!-- Brightness Slider -->
                 <div class="mb-4">
@@ -561,11 +637,11 @@ function renderDeviceSettings(device, deviceInfo, currentState) {
                     <label class="form-label mb-0">
                       <i class="bi bi-brightness-high me-2"></i>Brightness
                     </label>
-                    <span class="slider-value" id="brightnessValue">${device.powerOnBrightness || BRIGHTNESS_DEFAULT}%</span>
+                    <span class="slider-value" id="brightnessValue">${escapeHtml(device.powerOnBrightness ?? BRIGHTNESS_DEFAULT)}%</span>
                   </div>
                   <div class="slider-container">
                     <input type="range" class="brightness-slider" id="powerOnBrightness"
-                      min="${BRIGHTNESS_MIN}" max="${BRIGHTNESS_MAX}" value="${device.powerOnBrightness || BRIGHTNESS_DEFAULT}"
+                      min="${BRIGHTNESS_MIN}" max="${BRIGHTNESS_MAX}" value="${escapeHtml(device.powerOnBrightness ?? BRIGHTNESS_DEFAULT)}"
                       oninput="updateBrightnessValue(this.value)">
                     <div class="slider-label">
                       <span>${BRIGHTNESS_MIN}%</span>
@@ -580,11 +656,11 @@ function renderDeviceSettings(device, deviceInfo, currentState) {
                     <label class="form-label mb-0">
                       <i class="bi bi-thermometer-half me-2"></i>Color Temperature
                     </label>
-                    <span class="slider-value" id="temperatureValue">${device.powerOnTemperature || TEMPERATURE_DEFAULT}K</span>
+                    <span class="slider-value" id="temperatureValue">${escapeHtml(device.powerOnTemperature ?? TEMPERATURE_DEFAULT)}K</span>
                   </div>
                   <div class="slider-container">
                     <input type="range" class="temperature-slider" id="powerOnTemperature"
-                      min="${TEMPERATURE_MIN}" max="${TEMPERATURE_MAX}" step="${TEMPERATURE_STEP}" value="${device.powerOnTemperature || TEMPERATURE_DEFAULT}"
+                      min="${TEMPERATURE_MIN}" max="${TEMPERATURE_MAX}" step="${TEMPERATURE_STEP}" value="${escapeHtml(device.powerOnTemperature ?? TEMPERATURE_DEFAULT)}"
                       oninput="updateTemperatureValue(this.value)">
                     <div class="slider-label">
                       <span>${TEMPERATURE_MIN}K (Warm)</span>
@@ -613,27 +689,27 @@ function renderDeviceSettings(device, deviceInfo, currentState) {
             <div class="row g-3">
               <div class="col-md-6">
                 <label class="mp-label mb-1">Product</label>
-                <div class="fw-medium">${deviceInfo?.productName || device.model || "Elgato Key Light"}</div>
+                <div class="fw-medium">${escapeHtml(deviceInfo?.productName || device.model || "Elgato Key Light")}</div>
               </div>
               <div class="col-md-6">
                 <label class="mp-label mb-1">Serial Number</label>
-                <div class="fw-medium font-monospace">${deviceInfo?.serialNumber || "Unknown"}</div>
+                <div class="fw-medium font-monospace">${escapeHtml(deviceInfo?.serialNumber || "Unknown")}</div>
               </div>
               <div class="col-md-6">
                 <label class="mp-label mb-1">Firmware Version</label>
-                <div class="fw-medium">${deviceInfo?.firmwareVersion || "Unknown"}</div>
+                <div class="fw-medium">${escapeHtml(deviceInfo?.firmwareVersion || "Unknown")}</div>
               </div>
               <div class="col-md-6">
                 <label class="mp-label mb-1">MAC Address</label>
-                <div class="fw-medium font-monospace">${device.mac || "Unknown"}</div>
+                <div class="fw-medium font-monospace">${escapeHtml(device.mac || "Unknown")}</div>
               </div>
               <div class="col-md-6">
                 <label class="mp-label mb-1">IP Address</label>
-                <div class="fw-medium font-monospace">${host || "Unknown"}</div>
+                <div class="fw-medium font-monospace">${escapeHtml(host || "Unknown")}</div>
               </div>
               <div class="col-md-6">
                 <label class="mp-label mb-1">Port</label>
-                <div class="fw-medium">${device.port || ELGATO_DEFAULT_PORT}</div>
+                <div class="fw-medium">${escapeHtml(device.port || ELGATO_DEFAULT_PORT)}</div>
               </div>
             </div>
           </div>
@@ -645,32 +721,39 @@ function renderDeviceSettings(device, deviceInfo, currentState) {
 
 // oxlint-disable-next-line no-unused-vars -- called from HTML oninput
 function updateBrightnessValue(value) {
+  editedSettings.add("powerOnBrightness");
   document.getElementById("brightnessValue").textContent = value + "%";
 }
 
 // oxlint-disable-next-line no-unused-vars -- called from HTML oninput
 function updateTemperatureValue(value) {
+  editedSettings.add("powerOnTemperature");
   document.getElementById("temperatureValue").textContent = value + "K";
 }
 
 // oxlint-disable-next-line no-unused-vars -- called from HTML onclick
 async function saveDeviceSettings(index) {
-  const device = discoveredDevices[index];
+  const device = { ...discoveredDevices[index] };
 
   device.enabled = document.getElementById("deviceEnabled").checked;
   device.displayName = document.getElementById("displayName").value.trim();
-  device.powerOnBehavior = parseInt(document.getElementById("powerOnBehavior").value);
-  device.powerOnBrightness = parseInt(
-    document.getElementById("powerOnBrightness").value,
-  );
-  device.powerOnTemperature = parseInt(
-    document.getElementById("powerOnTemperature").value,
-  );
+  const behavior = Number(document.getElementById("powerOnBehavior").value);
+  if (behavior !== (device.powerOnBehavior ?? POWER_ON_BEHAVIOR.USE_GLOBAL)) {
+    device.powerOnBehavior = behavior;
+  }
+  for (const field of ["powerOnBrightness", "powerOnTemperature"]) {
+    if (editedSettings.has(field))
+      device[field] = Number(document.getElementById(field).value);
+  }
 
-  discoveredDevices[index] = device;
+  const nextDevices = discoveredDevices.map((entry, i) =>
+    i === index ? device : entry,
+  );
 
   try {
-    await saveDevicesToConfig(discoveredDevices);
+    await saveDevicesToConfig(nextDevices);
+    discoveredDevices = nextDevices;
+    editedSettings.clear();
     showToast("Device settings saved", "success");
     document.getElementById("settingsDeviceName").textContent =
       device.displayName || device.name;
@@ -690,12 +773,12 @@ async function identifyDevice(index) {
       port: device.port || ELGATO_DEFAULT_PORT,
     });
     if (result.success) {
-      showToast(`Identifying ${device.name}...`, "success");
+      showToast(`Identifying ${escapeHtml(device.name)}...`, "success");
     } else {
-      showToast(`Failed to identify: ${result.error}`, "danger");
+      showToast(`Failed to identify: ${escapeHtml(result.error)}`, "danger");
     }
   } catch (error) {
-    showToast(`Error: ${error.message}`, "danger");
+    showToast(`Error: ${escapeHtml(error.message)}`, "danger");
   }
 }
 
@@ -713,12 +796,12 @@ async function testConnection(index) {
       port: device.port || ELGATO_DEFAULT_PORT,
     });
     if (result.success) {
-      resultSpan.innerHTML = `<span class="badge bg-success"><i class="bi bi-check-circle me-1"></i>Connected (${result.latency}ms)</span>`;
+      resultSpan.innerHTML = `<span class="badge bg-success"><i class="bi bi-check-circle me-1"></i>Connected (${escapeHtml(result.latency)}ms)</span>`;
     } else {
-      resultSpan.innerHTML = `<span class="badge bg-danger"><i class="bi bi-x-circle me-1"></i>${result.error}</span>`;
+      resultSpan.innerHTML = `<span class="badge bg-danger"><i class="bi bi-x-circle me-1"></i>${escapeHtml(result.error)}</span>`;
     }
   } catch (error) {
-    resultSpan.innerHTML = `<span class="badge bg-danger"><i class="bi bi-x-circle me-1"></i>${error.message}</span>`;
+    resultSpan.innerHTML = `<span class="badge bg-danger"><i class="bi bi-x-circle me-1"></i>${escapeHtml(error.message)}</span>`;
   }
 }
 

@@ -1,40 +1,10 @@
-# Devices
+# Device sessions
 
-This folder contains device communication and state management classes for Elgato Key Light hardware.
+`KeyLightInstance.ts` maintains confirmed device state and runs an Effect supervisor.
+Polling, initialization, settings, and commands share a per-device semaphore.
 
-## Files
-
-### KeyLightInstance.ts
-
-The `KeyLightInstance` class represents an initialized Key Light device. It handles all direct communication with the physical device via its REST API.
-
-**Responsibilities:**
-
-- Communicates with the device's HTTP REST API
-- Manages device state (on/off, brightness, temperature)
-- Polls the device for state changes at a configurable interval
-- Notifies listeners when properties change externally (e.g., via the Elgato app)
-- Handles device identification (flash)
-- Updates device settings (power-on behavior, transition durations)
-
-**Factory Method:**
-
-```typescript
-const instance = await KeyLightInstance.createInstance(keyLight, log, pollingRate);
-```
-
-**Key Properties:**
-
-- `hostname`, `port` - Device network address
-- `name`, `mac` - Device identification
-- `info` - Device info (serial, firmware, product name)
-- `options` - Current light state (on, brightness, temperature)
-- `settings` - Device settings (power-on behavior, transitions)
-
-**Key Methods:**
-
-- `setProperty(property, value)` - Set a light property
-- `getProperty(property)` - Get a light property value
-- `identify()` - Flash the light for identification
-- `updateSettings(settings)` - Update device settings
-- `stopPolling()` - Stop state polling (called during shutdown)
+Failures mark the device offline and retry indefinitely with capped exponential
+backoff and jitter. Rediscovery replaces candidate endpoints and wakes recovery.
+Validate identity before controlling a new endpoint, ignore obsolete responses after
+address changes, and never report failed writes as applied settings. The platform
+owns the supervisor's scope and shutdown.

@@ -1,31 +1,12 @@
-# Config
+# Configuration
 
-This folder contains plugin configuration constants and settings used throughout the codebase.
+`validation.ts` decodes configuration with Effect Schema, normalizes MAC addresses,
+checks device identities and endpoints, and computes explicit settings overrides.
+A device requires a MAC or serial number; an address enables operation without mDNS.
 
-## Files
+Defaults: polling delay 5000 ms, per-request timeout 3000 ms, maximum retry delay
+60000 ms. Omitted power-on and transition settings preserve confirmed device settings.
+Configuration temperature is Kelvin; HTTP settings use mirek.
 
-### settings.ts
-
-Defines the plugin identity constants:
-
-- `PLATFORM_NAME` - The platform name used in Homebridge config (`ElgatoKeyLights`)
-- `PLUGIN_NAME` - The npm package name (`@micthiesen/homebridge-elgato-key-lights`)
-
-### constants.ts
-
-Shared constants for the plugin:
-
-- `BONJOUR_SERVICE_TYPE` - mDNS service type for Elgato device discovery (`elg`)
-- `API_PATHS` - Elgato device REST API endpoint paths
-- `COLOR_TEMPERATURE` - HomeKit color temperature range in mirek (143-344)
-- `DEFAULT_POLLING_RATE_MS` - Default state polling interval (1000ms)
-- `KELVIN_TO_MIREK_FACTOR` - Conversion factor for Kelvin to mirek (1,000,000)
-
-## Usage
-
-Import constants as needed:
-
-```typescript
-import { PLATFORM_NAME, PLUGIN_NAME } from './config/settings.js';
-import { API_PATHS, COLOR_TEMPERATURE } from './config/constants.js';
-```
+Keep `config.schema.json`, runtime validation, and README ranges/defaults aligned.
+`settings.ts` owns the published package name and stable platform identifier.

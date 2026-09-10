@@ -45,3 +45,6 @@ jobs:
 
       - name: Test
         run: pnpm run test:only
+
+      - name: Verify compiled runtime and UI shutdown
+        run: pnpm run test:runtime
