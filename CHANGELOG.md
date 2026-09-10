@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.0.28] - 2026-09-10
+
+### Changed
+
+- Established the maintained `@micthiesen/homebridge-elgato-key-lights` fork with TypeScript 7, pnpm, Oxlint, and Oxfmt.
+- Added Node 22/24/26 CI and automatic npm trusted publishing from `main`.
+
 ## [1.0.27] - 2026-09-10
 
 ### Fixed
