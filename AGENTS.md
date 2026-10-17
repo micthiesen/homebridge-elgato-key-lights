@@ -58,7 +58,7 @@ configuration and mirek device/HomeKit values explicit.
 - Follow the local Oxc configuration: 88 columns and two-space indentation.
 - Prefer strong types, explicit boundary validation, and focused modules.
 - Do not leave debug logging, commented-out code, or unnecessary abstractions.
-- Use `../omni-notify` for evolving TypeScript and Oxc conventions and
+- Use `../omni` for evolving TypeScript and Oxc conventions and
   `../homebridge-kasa` for Homebridge packaging and CI patterns. Adapt their
   conventions to this plugin; service-specific infrastructure does not apply.
 - Register shared tooling ports through `.agents/skills/sync/sync-map.json` and

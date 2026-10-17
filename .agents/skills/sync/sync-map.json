@@ -1,8 +1,8 @@
 {
   "project": "homebridge-elgato-key-lights",
   "peers": {
-    "omni-notify": {
-      "path": "../omni-notify",
+    "omni": {
+      "path": "../omni",
       "notes": "Shared Oxc lint and 88-column formatting policy. Preserve project-specific ignores, plugins, and deliberate lint exceptions."
     },
     "homebridge-kasa": {
@@ -14,7 +14,7 @@
     {
       "path": ".oxlintrc.json",
       "peers": [
-        "omni-notify"
+        "omni"
       ],
       "mode": "judgment",
       "notes": "Shared Oxc lint and 88-column formatting policy. Preserve project-specific ignores, plugins, and deliberate lint exceptions."
@@ -22,7 +22,7 @@
     {
       "path": ".oxfmtrc.json",
       "peers": [
-        "omni-notify"
+        "omni"
       ],
       "mode": "judgment",
       "notes": "Shared Oxc lint and 88-column formatting policy. Preserve project-specific ignores, plugins, and deliberate lint exceptions."
